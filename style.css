@@ -1,86 +1,102 @@
-/* p15 GoddessForge - SENSE + Da Vinci: golden, restraint, 8px, protagonist */
-:root { --bg:#0a0806; --gold:#c5a46e; --rose:#d8a38a; --card:#12100d; --text:#f5f1e6; --dim:#8b6f47; --grid:8px; }
-body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,sans-serif; margin:0; padding:0; line-height:1.58; }
-.container { max-width:618px; margin:0 auto; padding:calc(var(--grid)*2); }
-header { text-align:center; margin-bottom:calc(var(--grid)*2); }
-h1 { font-size:24px; color:var(--rose); letter-spacing:-0.5px; }
-.card { background:#12100d; padding:calc(var(--grid)*1.25); border-radius:8px; border:1px solid #3a2f22; margin:calc(var(--grid)*1.25) 0; }
-button { background:#c5a46e; color:#0a0806; border:none; padding:8px 13px; border-radius:5px; font-weight:600; font-size:0.88rem; cursor:pointer; }
-button:hover { filter:brightness(1.04); }
-.form input,select,textarea { width:100%; background:#1a1712; border:1px solid #3a2f22; color:var(--text); padding:6px; border-radius:4px; box-sizing:border-box; margin:2px 0; }
-.nav button { background:#15120f; color:var(--gold); border:1px solid #3a2f22; padding:6px 10px; font-size:11px; }
-footer { margin-top:calc(var(--grid)*4); text-align:center; font-size:0.62rem; opacity:0.55; }
-main { max-width:618px; margin:0 auto; }
-.tagline { color: var(--dim); }
-.disclaimer { font-size: 9px; opacity: 0.5; }
+/* p15 GoddessForge — SENSE: protagonist=Glow, 60/30/10, 8px grid, restraint, one gold accent */
+:root {
+  --bg:#0a0806;        /* 60 base */
+  --card:#12100d;      /* 30 surface */
+  --gold:#c5a46e;      /* 10 accent — protagonist only */
+  --rose:#d8a38a;
+  --text:#f5f1e6;
+  --dim:#8b6f47;
+  --line:#3a3124;
+  --grid:8px;
+  --ease:cubic-bezier(.22,.61,.36,1); /* ease-out */
+}
+* { box-sizing: border-box; }
+body { background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,sans-serif; margin:0; line-height:1.58; }
+.container, main { max-width:618px; margin:0 auto; padding:calc(var(--grid)*2); }
+header { text-align:center; margin-bottom:calc(var(--grid)*3); }
 
-.wallet { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
-#wallet-info { font-family: monospace; font-size: 12px; background: var(--card); padding: 4px 8px; border-radius: 4px; }
+/* Hierarchy — one protagonist wordmark */
+h1 { font-size:30px; color:var(--rose); letter-spacing:-0.6px; margin:calc(var(--grid)*0.5) 0 2px; }
+h2 { font-size:17px; color:var(--text); letter-spacing:-0.2px; }
+h3 { font-size:14px; color:var(--gold); }
+.tagline { color:var(--dim); font-size:12px; margin:0 0 calc(var(--grid)*1.5); }
+.disclaimer { font-size:9px; opacity:0.42; letter-spacing:0.3px; margin-bottom:calc(var(--grid)); }
 
-.nav { display: flex; gap: 6px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
-button { background: var(--card); color: var(--gold); border: 1px solid #3a3124; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-button.primary { background: var(--gold); color: #0a0806; font-weight: 600; }
+/* Base button = quiet (30). Protagonist action = one gold .primary (10). */
+button { background:var(--card); color:var(--gold); border:1px solid var(--line); padding:8px 12px; border-radius:7px; cursor:pointer; font-size:13px; font-weight:600; transition:filter .16s var(--ease), transform .12s var(--ease), border-color .16s var(--ease); }
+button:hover { border-color:var(--gold); }
+button:active { transform:scale(0.97); }
+button:disabled { opacity:0.4; cursor:default; }
+button.primary { background:var(--gold); color:#0a0806; border-color:var(--gold); }
+button.primary:hover { filter:brightness(1.05); }
 
-.section { margin-bottom: 24px; }
-.hidden { display: none; }
+.wallet { display:flex; gap:8px; justify-content:center; align-items:center; margin:calc(var(--grid)*1.5) 0; }
+#wallet-info { font-family:ui-monospace,monospace; font-size:12px; color:var(--dim); background:var(--card); padding:5px 9px; border-radius:6px; }
 
-.form label { display: block; font-size: 12px; color: var(--dim); margin: 10px 0 4px; }
-.form input, .form textarea { width: 100%; background: #1a1712; border: 1px solid #3a3124; color: var(--text); padding: 8px; border-radius: 6px; margin-bottom: 8px; box-sizing: border-box; }
-.form textarea { height: 80px; }
+/* Nav = calm secondary tier, does not fight the Glow protagonist */
+.nav { display:flex; gap:6px; justify-content:center; margin-bottom:calc(var(--grid)*2); flex-wrap:wrap; }
+.nav button { background:transparent; color:var(--dim); border:1px solid transparent; padding:6px 10px; font-size:11px; font-weight:500; }
+.nav button:hover { color:var(--gold); border-color:var(--line); }
 
-.grid { display: grid; gap: 10px; }
-.card { background: var(--card); border: 1px solid #3a3124; padding: 12px; border-radius: 8px; }
-.card .surprise { color: #f5d76e; font-size: 11px; }
+.section { margin-bottom:calc(var(--grid)*3); }
+.hidden { display:none; }
 
-.fomo { color: #f87171; font-size: 11px; }
+/* PROTAGONIST — MY Goddess Glow. Biggest, boldest, single gold gauge. */
+.glow-bar { margin:calc(var(--grid)*2) auto; text-align:center; }
+.glow-label { font-size:11px; color:var(--dim); letter-spacing:1.5px; text-transform:uppercase; }
+.glow-label span { color:var(--rose); font-size:22px; font-weight:700; margin-left:6px; vertical-align:-2px; }
+.glow-progress { height:8px; background:#221f18; border-radius:99px; margin:calc(var(--grid)) auto 0; max-width:300px; overflow:hidden; }
+#glow-fill { height:100%; background:linear-gradient(90deg,var(--gold),var(--rose)); transition:width .5s var(--ease); }
+/* one novelty spoon: golden anticipation pulse when glow rises */
+.glow-progress.pulse #glow-fill { animation:glowPulse .9s var(--ease); }
+@keyframes glowPulse { 0%{filter:brightness(1)} 40%{filter:brightness(1.6) saturate(1.3)} 100%{filter:brightness(1)} }
 
-.notebook-entry { background: var(--card); border: 1px solid #3a3124; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 13px; }
+.fomo { color:#e8938f; font-size:11px; }
+.pity { color:#e8d9a8; font-size:11px; margin-top:4px; }
+.psych-hint { font-size:12px; color:var(--gold); font-style:italic; margin:calc(var(--grid)) 0; opacity:0.85; }
 
-.glow-meter, .skin-mood { background: #12100d; border:1px solid #3a3124; padding:8px; border-radius:6px; margin:8px 0; }
-.skin-mood .stat { display:flex; gap:8px; font-size:12px; margin:2px 0; }
-.skin-mood .label { color:#8b6f47; width:90px; }
-.fomo { color:#f87171; }
+.card { background:var(--card); border:1px solid var(--line); padding:calc(var(--grid)*1.5); border-radius:8px; margin:calc(var(--grid)*1.25) 0; }
+.card .surprise { color:#f5d76e; font-size:11px; }
+.grid { display:grid; gap:10px; margin:calc(var(--grid)) 0; }
 
-/* p15 Lilith Psych + Full-Cheat + SENSE */
-.glow-bar { margin: 12px 0; text-align: center; }
-.glow-label { font-size: 11px; color: var(--dim); letter-spacing: 1px; }
-.glow-progress { height: 6px; background: #221f18; border-radius: 3px; margin: 4px auto; max-width: 260px; overflow: hidden; }
-#glow-fill { height: 100%; background: linear-gradient(to right, var(--gold), var(--rose)); transition: width .4s ease; }
-.fomo { color: #f87171; font-size: 11px; }
-.psych-hint { font-size: 12px; color: #c5a46e; font-style: italic; margin: 4px 0; }
-.near-miss { height: 4px; background: #3a3124; margin: 8px 0; position: relative; }
-.near-miss:after { content: ''; position: absolute; left: 88%; top:0; width:12%; height:100%; background: #f5d76e; opacity:0.6; }
-.live-item { background: var(--card); padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size:13px; }
-button.primary { background: var(--gold); color: #0a0806; font-weight: 600; }
+.form label { display:block; font-size:12px; color:var(--dim); margin:calc(var(--grid)*1.25) 0 4px; }
+.form input, .form textarea, .form select, select { width:100%; background:#1a1712; border:1px solid var(--line); color:var(--text); padding:8px; border-radius:6px; margin-bottom:8px; }
+.form textarea { height:80px; }
 
-/* p6 Lung Surprise Eye + Skin/Mood + Da Vinci SENSE */
-.visualizer { position:relative; background:#0a0806; border:1px solid #3a3124; border-radius:8px; margin:10px 0; overflow:hidden; }
+.notebook-entry { background:var(--card); border:1px solid var(--line); padding:10px; border-radius:6px; margin-bottom:8px; font-size:13px; }
+
+/* p6 Voice visualizer + skin/mood */
+.visualizer { position:relative; background:#0a0806; border:1px solid var(--line); border-radius:10px; margin:calc(var(--grid)*1.25) 0; overflow:hidden; }
 .visualizer canvas { display:block; width:100%; }
-.overlay-label { position:absolute; top:6px; right:10px; font-size:9px; color:#c5a46e; letter-spacing:1px; opacity:.65; }
-#voice-analysis { margin:8px 0; }
-.skin-mood { display:flex; gap:10px; }
+.overlay-label { position:absolute; top:6px; right:10px; font-size:9px; color:var(--gold); letter-spacing:1px; opacity:.6; }
+.controls { display:flex; gap:8px; flex-wrap:wrap; margin:calc(var(--grid)) 0; }
+#voice-analysis { margin:calc(var(--grid)) 0; }
+.skin-mood { display:flex; gap:12px; background:var(--card); border:1px solid var(--line); padding:calc(var(--grid)*1.25); border-radius:8px; margin:calc(var(--grid)) 0; }
 .skin-mood .stat { flex:1; font-size:12px; }
-.skin-mood .label { color:var(--dim); font-size:10px; display:block; }
-.skin-mood .val { color:#f5d76e; font-weight:600; letter-spacing:.5px; }
-.consult { background:#15120f; padding:10px; border-radius:6px; margin:8px 0; font-size:13px; border-left:3px solid #c5a46e; line-height:1.35; }
-.emergent { font-size:11px; color:#e8d9a8; margin-top:6px; background:rgba(197,164,110,.05); padding:5px 7px; border-radius:4px; }
+.skin-mood .label { color:var(--dim); font-size:10px; display:block; text-transform:uppercase; letter-spacing:.5px; margin-bottom:2px; }
+.skin-mood .val { color:#f5d76e; font-weight:600; }
+.consult { background:#15120f; padding:calc(var(--grid)*1.25); border-radius:8px; margin:calc(var(--grid)) 0; font-size:13px; border-left:3px solid var(--gold); line-height:1.4; }
+.emergent { font-size:11px; color:#e8d9a8; margin-top:6px; background:rgba(197,164,110,.06); padding:6px 8px; border-radius:5px; }
 
-/* p9 Live Platform Cross Birth — p15 Beauty: live beauty sessions, voice live p6, women community */
+/* p9 Live */
 .live-grid { display:grid; gap:12px; }
-.live-card { background:var(--card); border:1px solid #3a3124; border-radius:12px; padding:14px; position:relative; }
+.live-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; transition:border-color .16s var(--ease), transform .12s var(--ease); }
+.live-card:hover { border-color:var(--gold); transform:translateY(-1px); }
 .live-card.live { border-color:#e8a0a0; }
-.live-card .meta { font-size:11px; color:var(--dim); }
-.live-card .viewers { color:#e8a0a0; font-weight:600; }
-.live-card .price { color:var(--gold); font-weight:600; }
-.live-card button { margin-top:8px; width:100%; }
+.live-card .meta { font-size:11px; color:var(--dim); letter-spacing:.5px; }
+.live-card .viewers { color:#e8a0a0; font-weight:600; font-size:12px; }
+.live-card .price { color:var(--gold); font-weight:600; font-size:12px; }
+.live-card button { margin-top:calc(var(--grid)); width:100%; }
 
-#live-room { background:var(--card); border-radius:16px; padding:16px; border:1px solid #3a3124; }
-.live-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
-.glow-meter { margin:12px 0; padding:10px; background:#0f0d0a; border-radius:8px; }
+#live-room { background:var(--card); border-radius:16px; padding:calc(var(--grid)*2); border:1px solid var(--line); }
+.live-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:calc(var(--grid)*1.5); gap:12px; }
+.glow-meter { margin:calc(var(--grid)*1.5) 0; padding:calc(var(--grid)*1.25); background:#0f0d0a; border-radius:8px; font-size:12px; }
 #glow-bar { height:10px; background:#2a2012; border-radius:99px; overflow:hidden; margin:6px 0; }
-#glow-fill { height:100%; background:linear-gradient(to right,#e8a0a0,#c5a46e); transition:width .2s; }
-.fomo-bar { margin:6px 0; }
-.live-chat { margin-top:12px; font-size:12px; max-height:110px; overflow:auto; background:#0a0806; padding:8px; border-radius:6px; line-height:1.3; }
-.ritual { font-size:11px; color:#e8a0a0; margin:8px 0 4px; padding:4px 8px; background:#15120f; border-radius:4px; }
-.cohost select, .cohost button { width:auto; display:inline; margin-right:6px; }
-EOF
+#live-glow-fill { height:100%; background:linear-gradient(90deg,#e8a0a0,var(--gold)); transition:width .25s var(--ease); }
+.fomo-bar { margin:calc(var(--grid)) 0; display:flex; flex-direction:column; gap:6px; }
+.live-chat { margin-top:calc(var(--grid)*1.5); font-size:12px; max-height:110px; overflow:auto; background:#0a0806; padding:calc(var(--grid)); border-radius:6px; line-height:1.4; }
+.ritual { font-size:11px; color:#e8a0a0; margin:calc(var(--grid)) 0 4px; padding:5px 9px; background:#15120f; border-radius:5px; }
+.cohost { margin:calc(var(--grid)) 0; }
+.cohost select, .cohost button { width:auto; display:inline-block; margin-right:6px; }
+
+footer { margin-top:calc(var(--grid)*4); text-align:center; font-size:.62rem; opacity:.55; }

@@ -12,11 +12,22 @@ let glow = parseInt(localStorage.getItem('p15_glow') || '87');
 let bondLevel = parseInt(localStorage.getItem('p15_bond') || '3'); // Voice Bond endowment
 let lastLogDay = localStorage.getItem('p15_lastlog') || null;
 
+let _prevGlow = glow;
+function pulseGlowBar() {
+  const bar = document.querySelector('.glow-progress');
+  if (!bar) return;
+  bar.classList.remove('pulse');
+  void bar.offsetWidth; // reflow so animation can retrigger
+  bar.classList.add('pulse');
+}
+
 function updateGlowUI() {
   const scoreEl = document.getElementById('glow-score');
   const fill = document.getElementById('glow-fill');
   if (scoreEl) scoreEl.textContent = glow;
   if (fill) fill.style.width = Math.min(100, glow) + '%';
+  if (glow > _prevGlow) pulseGlowBar(); // anticipation spoon on glow gain
+  _prevGlow = glow;
   
   // Loss aversion on aging — daily decay if skipped
   const today = new Date().toISOString().slice(0,10);
