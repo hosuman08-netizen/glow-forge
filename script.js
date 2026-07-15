@@ -32,8 +32,10 @@ function updateGlowUI() {
   // Pity for bad streak (Lilith upgrade)
   const pityEl = document.getElementById('glow-pity');
   const badStreak = parseInt(localStorage.getItem('p15_badStreak')||'0');
-  if (pityEl && badStreak >= 2) {
-    pityEl.innerHTML = `🌟 PITY: bad glow streak ended — next voice +12-19 guaranteed`;
+  if (pityEl) {
+    pityEl.innerHTML = badStreak >= 2
+      ? `🌟 Pity active — your next voice log gets a +14 glow boost.`
+      : '';
   }
 }
 
@@ -352,6 +354,12 @@ function showCommunity() {
   hideAll();
   document.getElementById('community').classList.remove('hidden');
   renderCommunityFeed();
+}
+
+function showMetaverse() {
+  hideAll();
+  const m = document.getElementById('metaverse');
+  if (m) m.classList.remove('hidden');
 }
 
 function addToCodex(note) {
