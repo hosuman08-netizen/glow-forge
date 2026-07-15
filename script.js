@@ -12,6 +12,124 @@ let glow = parseInt(localStorage.getItem('p15_glow') || '87');
 let bondLevel = parseInt(localStorage.getItem('p15_bond') || '3'); // Voice Bond endowment
 let lastLogDay = localStorage.getItem('p15_lastlog') || null;
 
+// ============================================================
+// DAILY GLOW STREAK — the real core loop (Trinity/CPO 2026-07-16)
+// One meaningful check-in per day builds a consecutive streak.
+// Miss a day → streak resets (loss aversion, honest). Milestones
+// grant real glow rewards. All state persisted, deterministic.
+// ============================================================
+const STREAK_MILESTONES = [
+  { day: 3,  reward: 8,  title: 'Kindled',   note: '3 days — your glow remembers you.' },
+  { day: 7,  reward: 18, title: 'Radiant',   note: '7 days — a full ritual week sealed.' },
+  { day: 14, reward: 35, title: 'Luminous',  note: '14 days — your voice is a habit now.' },
+  { day: 30, reward: 80, title: 'Goddess',   note: '30 days — forged, unbreakable glow.' },
+];
+
+function _todayStr() { return new Date().toISOString().slice(0, 10); }
+function _dayNumber(dateStr) {
+  // whole-day index since epoch (UTC date boundary) — robust to time-of-day
+  return Math.floor(new Date(dateStr + 'T00:00:00Z').getTime() / 864e5);
+}
+
+function loadStreak() {
+  try {
+    const s = JSON.parse(localStorage.getItem('p15_streak') || 'null');
+    if (s && typeof s.count === 'number') return s;
+  } catch (e) {}
+  return { count: 0, best: 0, lastDay: null, claimed: [] };
+}
+
+function saveStreak(s) {
+  try { localStorage.setItem('p15_streak', JSON.stringify(s)); } catch (e) {}
+}
+
+// Read-only status for the day (does the daily state get counted as broken?)
+// Returns {count, best, lastDay, checkedInToday, brokenSince}
+function getStreakStatus() {
+  const s = loadStreak();
+  const today = _todayStr();
+  const checkedInToday = s.lastDay === today;
+  let effectiveCount = s.count;
+  let brokenSince = 0;
+  if (s.lastDay && !checkedInToday) {
+    const gap = _dayNumber(today) - _dayNumber(s.lastDay);
+    if (gap > 1) { effectiveCount = 0; brokenSince = gap - 1; } // missed at least one full day
+  }
+  return { count: effectiveCount, best: s.best, lastDay: s.lastDay, checkedInToday, brokenSince, claimed: s.claimed || [] };
+}
+
+// Records today's check-in. Idempotent per day (won't double-count).
+// Returns { count, best, isNew, broke, milestone } — milestone reward already applied to glow by caller if present.
+function checkInStreak() {
+  const s = loadStreak();
+  const today = _todayStr();
+  if (s.lastDay === today) {
+    return { count: s.count, best: s.best, isNew: false, broke: false, milestone: null };
+  }
+  let broke = false;
+  if (s.lastDay) {
+    const gap = _dayNumber(today) - _dayNumber(s.lastDay);
+    if (gap === 1) { s.count += 1; }        // consecutive
+    else if (gap > 1) { s.count = 1; broke = true; } // missed day(s) → restart
+    else { s.count = Math.max(1, s.count); } // same/earlier (clock skew) — never lose a day
+  } else {
+    s.count = 1; // first ever check-in
+  }
+  s.lastDay = today;
+  s.best = Math.max(s.best || 0, s.count);
+  lastLogDay = today;                        // keep aging-warning state honest & alive
+  localStorage.setItem('p15_lastlog', today);
+
+  // Milestone: first time reaching this streak length
+  s.claimed = s.claimed || [];
+  let milestone = null;
+  for (const m of STREAK_MILESTONES) {
+    if (s.count === m.day && !s.claimed.includes(m.day)) {
+      s.claimed.push(m.day);
+      milestone = m;
+      break;
+    }
+  }
+  saveStreak(s);
+  return { count: s.count, best: s.best, isNew: true, broke, milestone };
+}
+
+function renderStreakUI() {
+  const st = getStreakStatus();
+  const flame = document.getElementById('streak-flame');
+  const count = document.getElementById('streak-count');
+  const sub = document.getElementById('streak-sub');
+  const dots = document.getElementById('streak-dots');
+  if (count) count.textContent = st.count;
+  if (flame) flame.textContent = st.count >= 7 ? '🔥' : st.count >= 1 ? '✨' : '🌑';
+  if (sub) {
+    if (st.checkedInToday) {
+      sub.textContent = `Checked in today. Best: ${st.best} 🏆`;
+    } else if (st.count > 0) {
+      sub.innerHTML = `<span class="fomo">Voice-log today to keep your ${st.count}-day streak alive.</span>`;
+    } else if (st.brokenSince > 0) {
+      sub.innerHTML = `<span class="fomo">Streak broke (missed ${st.brokenSince}d). Best was ${st.best} — rebuild it today.</span>`;
+    } else {
+      sub.textContent = 'Voice-log today to start your streak.';
+    }
+  }
+  // 7-day dot rail: filled = last N days of the current run
+  if (dots) {
+    dots.innerHTML = '';
+    for (let i = 0; i < 7; i++) {
+      const d = document.createElement('span');
+      d.className = 'streak-dot' + (i < Math.min(7, st.count) ? ' on' : '');
+      dots.appendChild(d);
+    }
+  }
+  // Next milestone hint
+  const nextEl = document.getElementById('streak-next');
+  if (nextEl) {
+    const next = STREAK_MILESTONES.find(m => m.day > st.count);
+    nextEl.textContent = next ? `Next: ${next.title} at day ${next.day} (+${next.reward} glow)` : 'All milestones forged 👑';
+  }
+}
+
 let _prevGlow = glow;
 function pulseGlowBar() {
   const bar = document.querySelector('.glow-progress');
@@ -237,8 +355,25 @@ function updateGlowFromVoice(surprise, ache) {
   localStorage.setItem('p15_glow', glow);
   bondLevel = Math.min(14, bondLevel + 1);
   localStorage.setItem('p15_bond', bondLevel);
+
+  // === DAILY GLOW STREAK: this voice log is the daily check-in ===
+  const sr = checkInStreak();
+  let streakMsg = '';
+  if (sr.milestone) {
+    glow = Math.min(99, glow + sr.milestone.reward);
+    localStorage.setItem('p15_glow', glow);
+    addToCodex(`🔥 Streak milestone: ${sr.milestone.title} (day ${sr.milestone.day}) +${sr.milestone.reward} glow. ${sr.milestone.note}`);
+    streakMsg = ` <strong>🔥 ${sr.milestone.title}! Day ${sr.milestone.day} streak — +${sr.milestone.reward} glow bonus.</strong>`;
+  } else if (sr.isNew) {
+    streakMsg = sr.broke
+      ? ` Streak restarted — day 1. Come back tomorrow to build it.`
+      : ` 🔥 Streak: day ${sr.count}.`;
+  }
+
   updateGlowUI();
-  document.getElementById('voice-result').innerHTML = `<small>+${gain} Glow. Bond Lv.${bondLevel}. p6 lung sealed. (pity/variable active)</small>`;
+  renderStreakUI();
+  const vr = document.getElementById('voice-result');
+  if (vr) vr.innerHTML = `<small>+${gain} Glow. Bond Lv.${bondLevel}. p6 lung sealed.${streakMsg}</small>`;
 }
 
 function fallbackRecord() {
@@ -852,7 +987,7 @@ function enforceAgeGate() {
 
 function deleteAllBeautyData() {
   if (!confirm('Delete ALL local beauty data (voice logs, glow, codex, bond)? Irreversible in this sim.')) return;
-  ['p15_logs','p15_codex','p15_glow','p15_bond','p15_lastlog','p15_credits','p15_community','p15_lungBeauty','p15_skinLungVeil'].forEach(k => localStorage.removeItem(k));
+  ['p15_logs','p15_codex','p15_glow','p15_bond','p15_lastlog','p15_credits','p15_community','p15_lungBeauty','p15_skinLungVeil','p15_streak','p15_badStreak'].forEach(k => localStorage.removeItem(k));
   logs=[]; codex=[]; glow=50; bondLevel=1; lastLogDay=null; credits=890;
   alert('All beauty data purged. Fictional slate clean. Restart to re-seed.');
   location.reload();
@@ -881,6 +1016,7 @@ function initP15() {
   updateGlowUI();
   applyAgingCycle();
   updateGlowUI();
+  renderStreakUI();
   
   // p6 cross + births ready
   if (window.getP6LungSurprise || window.p6AcheGazeMirror) {

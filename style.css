@@ -100,3 +100,16 @@ button.primary:hover { filter:brightness(1.05); }
 .cohost select, .cohost button { width:auto; display:inline-block; margin-right:6px; }
 
 footer { margin-top:calc(var(--grid)*4); text-align:center; font-size:.62rem; opacity:.55; }
+
+/* === DAILY GLOW STREAK — core-loop card (SENSE: one protagonist, restraint) === */
+.streak-card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:calc(var(--grid)*1.25) calc(var(--grid)*1.5); margin:calc(var(--grid)*1.5) 0; text-align:left; }
+.streak-head { display:flex; align-items:baseline; gap:8px; }
+.streak-flame { font-size:22px; line-height:1; }
+.streak-num { font-size:26px; font-weight:700; color:var(--gold); letter-spacing:-0.5px; }
+.streak-num small { font-size:11px; font-weight:500; color:var(--dim); margin-left:5px; letter-spacing:0; }
+.streak-dots { display:flex; gap:5px; margin:8px 0 6px; }
+.streak-dot { width:14px; height:6px; border-radius:99px; background:#2a2012; transition:background .2s var(--ease); }
+.streak-dot.on { background:linear-gradient(90deg,var(--rose),var(--gold)); }
+.streak-sub { font-size:11px; color:var(--dim); }
+.streak-sub .fomo { font-size:11px; }
+.streak-next { font-size:10px; color:var(--gold); opacity:0.75; margin-top:3px; }

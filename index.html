@@ -21,6 +21,17 @@
         <div id="aging-warning" class="fomo"></div>
         <div id="glow-pity" class="pity"></div>
       </div>
+
+      <!-- DAILY GLOW STREAK — the core loop -->
+      <div class="streak-card" id="streak-card">
+        <div class="streak-head">
+          <span class="streak-flame" id="streak-flame">🌑</span>
+          <span class="streak-num"><span id="streak-count">0</span><small>day streak</small></span>
+        </div>
+        <div class="streak-dots" id="streak-dots"></div>
+        <div class="streak-sub" id="streak-sub"></div>
+        <div class="streak-next" id="streak-next"></div>
+      </div>
       
       <div class="wallet">
         <button onclick="connectWallet()">🔗 Connect</button>
