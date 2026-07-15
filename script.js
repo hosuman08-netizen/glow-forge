@@ -170,7 +170,9 @@ function updateGlowUI() {
 
 function updateWallet() {
   const el = document.getElementById('wallet-info');
-  if (el) el.innerHTML = `${balance} Glow • ${credits} Credits`;
+  if (el) el.innerHTML = `${balance} Glow • ${credits} Credits${wallet ? ` • ${wallet}` : ''}`;
+  const btn = document.getElementById('connect-btn');
+  if (btn && wallet) btn.textContent = '✅ ' + wallet;
 }
 
 function connectWallet() {
