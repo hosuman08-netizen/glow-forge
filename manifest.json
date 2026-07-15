@@ -1,0 +1,9 @@
+{
+  "name": "GoddessForge",
+  "short_name": "GoddessForge",
+  "description": "여성 뷰티 앱. Voice, Live, Shop. Fictional. p15 Legion.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0a0806",
+  "theme_color": "#c5a46e"
+}
