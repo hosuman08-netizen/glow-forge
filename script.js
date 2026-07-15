@@ -548,10 +548,23 @@ function buyShopItem() {
   } else alert('Voice more for credits.');
 }
 
+// p12 cross: glow-backed idea funding (fictional virtual credits only)
+let fundedIdeas = JSON.parse(localStorage.getItem('p15_funded_ideas') || '[]');
+function fundBeautyIdea(text, score) {
+  // funding scales with your glow + surprise score (fictional narrative fuel)
+  const funded = Math.floor((glow || 65) * 1.3 + (score || 0.6) * 140 + bondLevel * 8);
+  const idea = { id: Date.now(), text: (text || 'New glow ritual').slice(0, 120), score: parseFloat((score || 0.6).toFixed(2)), funded };
+  fundedIdeas.unshift(idea);
+  if (fundedIdeas.length > 20) fundedIdeas.pop();
+  localStorage.setItem('p15_funded_ideas', JSON.stringify(fundedIdeas));
+  return idea;
+}
+
 // Birth 2 UI hook: Fund idea (p12 cross) — call from community or voice
 function fundIdeaUI() {
   const txt = prompt('Your beauty idea (voice truth):') || 'New glow ritual';
-  const s = (window._p15Voice && window._p15Voice.glow && window._p15Voice.glow.score) || 0.65;
+  const s = (currentVoiceSession && currentVoiceSession.surprise)
+    || (window.getP6LungSurprise && window.getP6LungSurprise()) || 0.65;
   const idea = fundBeautyIdea(txt, s);
   addToCodex(`Idea funded: ${txt}. ${idea.funded}c raised.`);
   alert(`Funded! ${idea.funded}c from sisters. Glow ${idea.score}.`);
@@ -664,7 +677,7 @@ function joinLiveBeauty(id) {
 }
 
 function startGlowEye(live) {
-  const bar = document.getElementById('glow-fill'); const val = document.getElementById('glow-val'); const fu = document.getElementById('glow-fuel');
+  const bar = document.getElementById('live-glow-fill'); const val = document.getElementById('glow-val'); const fu = document.getElementById('glow-fuel');
   if (!bar || !val) return;
   if (eyeTimer) clearInterval(eyeTimer);
   eyeTimer = setInterval(() => {
@@ -687,7 +700,7 @@ function pulseVoiceLiveBeauty() {
     rec.onstop = () => {
       const g = (window.getP6LungSurprise?window.getP6LungSurprise():0.5+Math.random()*0.3)*(0.75+Math.random()*0.5);
       activeLive.glow = Math.min(1,(activeLive.glow||0.6)*0.65 + g*0.95);
-      const b=document.getElementById('glow-fill'); if(b) b.style.width=Math.floor(activeLive.glow*100)+'%';
+      const b=document.getElementById('live-glow-fill'); if(b) b.style.width=Math.floor(activeLive.glow*100)+'%';
       const v=document.getElementById('glow-val'); if(v) v.textContent=activeLive.glow.toFixed(2);
       addLiveChat(`voice pulse • glow ${activeLive.glow.toFixed(2)}`);
       st.getTracks().forEach(t=>t.stop()); window._p15LiveVoice={glow:g};
@@ -704,7 +717,7 @@ function glowBoost() {
   if(roll>0.72){const w=Math.floor(base*(1+Math.random()*0.7));credits+=w; if(rs)rs.innerHTML=`radiant +${w}`; }
   else if(roll>0.39){if(rs)rs.innerHTML='near glow +0.08'; activeLive.glow=Math.min(1,activeLive.glow+0.08);}
   else {if(rs)rs.innerHTML='soft miss'; activeLive.glow=Math.min(1,activeLive.glow+0.03);}
-  const b=document.getElementById('glow-fill'); if(b) b.style.width=Math.floor(activeLive.glow*100)+'%';
+  const b=document.getElementById('live-glow-fill'); if(b) b.style.width=Math.floor(activeLive.glow*100)+'%';
   updateWallet();
 }
 
@@ -715,7 +728,7 @@ function castGlowRitual() {
   const gc = Math.random()*0.55 + (activeLive.glow||0.5)*0.8;
   if(gc>0.69){ activeLive.glow=Math.min(1,activeLive.glow+0.15); if(o)o.innerHTML='bloomed +0.15'; addLiveChat('ritual root.'); }
   else { activeLive.glow=Math.min(1,activeLive.glow+0.06); if(o)o.innerHTML='grazed.'; }
-  const b=document.getElementById('glow-fill'); if(b) b.style.width=Math.floor(activeLive.glow*100)+'%';
+  const b=document.getElementById('live-glow-fill'); if(b) b.style.width=Math.floor(activeLive.glow*100)+'%';
   const v=document.getElementById('glow-val'); if(v) v.textContent=activeLive.glow.toFixed(2);
 }
 
@@ -732,7 +745,7 @@ function mintGlowPass() {
   if(roll>0.71){activeLive.pass=true;activeLive.seatsLeft=(activeLive.seatsLeft||6)+4; if(re)re.textContent='UNLOCKED +4 seats glow+0.11'; activeLive.glow=Math.min(1,activeLive.glow+0.11);}
   else if(roll>0.43){if(re)re.textContent='near-glow'; activeLive.glow=Math.min(1,activeLive.glow+0.06);}
   else {if(re)re.textContent='miss';}
-  const b=document.getElementById('glow-fill'); if(b) b.style.width=Math.floor((activeLive.glow||0)*100)+'%';
+  const b=document.getElementById('live-glow-fill'); if(b) b.style.width=Math.floor((activeLive.glow||0)*100)+'%';
 }
 
 function startFomoBeautyTimer(live){ 
