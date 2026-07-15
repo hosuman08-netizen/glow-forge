@@ -113,3 +113,15 @@ footer { margin-top:calc(var(--grid)*4); text-align:center; font-size:.62rem; op
 .streak-sub { font-size:11px; color:var(--dim); }
 .streak-sub .fomo { font-size:11px; }
 .streak-next { font-size:10px; color:var(--gold); opacity:0.75; margin-top:3px; }
+
+/* === REAL VOICE DIAGNOSTIC — metric bars + recommendation === */
+.dx-metrics { display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+.metric { display:flex; align-items:center; gap:8px; font-size:11px; }
+.metric-label { width:90px; color:var(--dim); flex:none; }
+.metric-track { flex:1; height:6px; background:#2a2012; border-radius:99px; overflow:hidden; }
+.metric-fill { height:100%; background:linear-gradient(90deg,var(--rose),var(--gold)); border-radius:99px; transition:width .35s var(--ease); }
+.metric-pct { width:24px; text-align:right; color:var(--gold); font-variant-numeric:tabular-nums; flex:none; }
+.dx-skin { font-size:12.5px; line-height:1.5; margin:6px 0; }
+.dx-skin strong, .dx-rec strong, .dx-mood strong { color:var(--gold); font-size:11px; letter-spacing:.3px; }
+.dx-rec { font-size:12.5px; line-height:1.5; margin:8px 0; padding:8px 10px; background:#15120f; border-left:2px solid var(--gold); border-radius:5px; }
+.dx-mood { font-size:12px; color:var(--dim); margin-top:6px; }

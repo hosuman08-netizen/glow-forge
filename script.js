@@ -246,6 +246,8 @@ function recordVoiceLog() {
   preview.innerHTML = '🎙 p6 Lung Surprise Eye active. Speak your skin truth.';
   initP15Wave();
 
+  resetVoiceFeatures();
+
   navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true}}).then(stream => {
     mediaRecorder = new MediaRecorder(stream);
     audioChunks = [];
@@ -263,6 +265,7 @@ function recordVoiceLog() {
       if (!isRec) return;
       const amp = getP15Amp();
       const f = p15Data ? [...p15Data] : null;
+      sampleVoiceFeatures(amp, f); // accumulate real per-frame signal features
       // evolve lung fragment (p6 style)
       p15Lung.breath = (p15Lung.breath || 0.1) + amp * 0.0018;
       if (p15Lung.breath > 6.28) p15Lung.breath -= 6.28;
@@ -285,47 +288,146 @@ function stopVoiceLog() {
   }
 }
 
+// ============================================================
+// REAL VOICE DIAGNOSTIC ENGINE (Da Vinci observation, Trinity 2026-07-16)
+// Extracts genuine signal features across the WHOLE recording — not one
+// end snapshot — then maps them deterministically to a skin + mood
+// diagnosis and a concrete, feature-driven recommendation. Same voice →
+// same reading; different voice → different reading. Fictional narrative only.
+// ============================================================
+let p15Features = null;
+function resetVoiceFeatures() {
+  p15Features = {
+    frames: 0, ampSum: 0, ampSqSum: 0, ampMax: 0,
+    lowSum: 0, midSum: 0, highSum: 0,   // spectral band energy
+    voicedFrames: 0,                    // frames above silence floor
+    centroidSum: 0, centroidWeight: 0,  // spectral centroid (brightness/pitch proxy)
+    prevAmp: null, ampDeltaSum: 0,      // jitter (frame-to-frame change)
+  };
+}
+function sampleVoiceFeatures(amp, freq) {
+  const F = p15Features;
+  if (!F) return;
+  F.frames++;
+  F.ampSum += amp; F.ampSqSum += amp * amp;
+  if (amp > F.ampMax) F.ampMax = amp;
+  if (amp > 0.12) F.voicedFrames++;
+  if (F.prevAmp != null) F.ampDeltaSum += Math.abs(amp - F.prevAmp);
+  F.prevAmp = amp;
+  if (freq && freq.length) {
+    const n = freq.length, third = Math.max(1, Math.floor(n / 3));
+    let lo = 0, mid = 0, hi = 0, cSum = 0, cW = 0;
+    for (let i = 0; i < n; i++) {
+      const v = freq[i] / 255;
+      if (i < third) lo += v; else if (i < third * 2) mid += v; else hi += v;
+      cSum += i * v; cW += v;
+    }
+    F.lowSum += lo; F.midSum += mid; F.highSum += hi;
+    if (cW > 0) { F.centroidSum += (cSum / cW) / n; F.centroidWeight += 1; }
+  }
+}
+// Turn accumulated features into normalized [0..1] metrics + a diagnosis.
+function analyzeVoiceFeatures() {
+  const F = p15Features;
+  if (!F || F.frames < 3) return null; // too short to read honestly
+  const meanAmp = F.ampSum / F.frames;
+  const variance = Math.max(0, F.ampSqSum / F.frames - meanAmp * meanAmp);
+  const std = Math.sqrt(variance);
+  const jitter = F.ampDeltaSum / Math.max(1, F.frames - 1);   // breath instability
+  const voicedRatio = F.voicedFrames / F.frames;              // how much you actually spoke
+  const bandTotal = F.lowSum + F.midSum + F.highSum || 1;
+  const brightness = (F.midSum + F.highSum) / bandTotal;      // hi/mid share → radiance proxy
+  const warmth = F.lowSum / bandTotal;                        // low share → calm/depth proxy
+  const centroid = F.centroidWeight ? F.centroidSum / F.centroidWeight : 0.4;
+
+  // Normalized 0..1 beauty metrics (deterministic from real signal)
+  const energy = Math.min(1, meanAmp * 1.7 + F.ampMax * 0.25);
+  const steadiness = Math.max(0, Math.min(1, 1 - jitter * 3.5));      // low jitter = steady breath
+  const radiance = Math.min(1, brightness * 0.85 + centroid * 0.4);
+  const presence = Math.min(1, voicedRatio * 1.1);                    // spoke consistently
+  // ache = honest low-energy / unsteady signal; surprise = brightness × variability
+  const ache = Math.max(0.05, Math.min(1, (1 - energy) * 0.6 + (1 - steadiness) * 0.4));
+  const surprise = Math.max(0.05, Math.min(1, radiance * 0.55 + std * 1.4 + centroid * 0.2));
+
+  // --- SKIN diagnosis: scored across signals, pick strongest signal ---
+  const skinCandidates = [
+    { s: energy * 0.6 + radiance * 0.4, label: 'Vibrant — full circulation glow; pores read refined, tone even.',
+      rec: 'Lock it in: light hydrating essence + SPF. Skip heavy occlusives today — your barrier is thriving.' },
+    { s: (energy < 0.4 ? 0.7 : 0) + (1 - energy) * 0.5 + ache * 0.35, label: 'Matte & thirsty — low breath energy shows as dehydration.',
+      rec: 'Deep-hydration ritual tonight: layer a hyaluronic serum on damp skin, seal with a sleeping mask.' },
+    { s: (1 - steadiness) * 0.6 + jitter * 2, label: 'Reactive tension — micro-tremor suggests sensitivity / stress flush.',
+      rec: 'Calm & barrier-repair: fragrance-free centella or cica cream, cool compress, no actives for 48h.' },
+    { s: warmth * 0.7 + steadiness * 0.3, label: 'Balanced & resilient — deep, even resonance; skin in equilibrium.',
+      rec: 'Maintenance day: one gentle exfoliation (PHA) then your usual moisturizer. Don\'t over-treat.' },
+    { s: radiance * 0.5 + surprise * 0.5, label: 'Luminous tension — high radiance potential, ready to be lit.',
+      rec: 'Amplify: dewy primer + cream highlighter on cheekbones. A bold lip is fully earned tonight.' },
+  ].sort((a, b) => b.s - a.s);
+  const skinDx = skinCandidates[0];
+
+  // --- MOOD diagnosis from energy/steadiness/presence balance ---
+  let mood;
+  if (energy > 0.6 && radiance > 0.5) mood = 'Empowered & magnetic — ready to be seen';
+  else if (ache > 0.6) mood = 'Introspective ache — honest, tender, craving a ritual';
+  else if (steadiness > 0.65 && energy < 0.5) mood = 'Gentle retreat — grounded, protecting your glow';
+  else if (presence < 0.4) mood = 'Quiet & held-back — the voice is still warming up';
+  else mood = 'Centered harmony — steady and self-possessed';
+
+  return {
+    energy, steadiness, radiance, presence, ache, surprise, warmth, brightness, centroid,
+    voicedRatio, jitter, std, frames: F.frames,
+    skin: skinDx.label, skinRec: skinDx.rec, mood,
+  };
+}
+
 function finishVoiceCapture() {
   const blob = new Blob(audioChunks, {type:'audio/webm'});
   const url = URL.createObjectURL(blob);
   const preview = document.getElementById('voice-preview');
   preview.innerHTML = `<audio controls src="${url}"></audio>`;
 
-  // === p6 Lung Surprise Eye analysis (skin + mood) ===
-  const amp = getP15Amp();
-  const surprise = (window.getP6LungSurprise && window.getP6LungSurprise()) || (0.3 + (p15Lung.breath % 1) * 0.65);
-  const ache = Math.max(0.1, 1 - (p15Lung.age > 18 ? amp + 0.25 : 0.7));
-  const energy = Math.min(1, amp + 0.15);
+  // === REAL feature-driven diagnosis (falls back gracefully if too short) ===
+  const dx = analyzeVoiceFeatures();
+  let surprise, ache, energy, skin, mood, skinRec, metrics;
+  if (dx) {
+    ({ surprise, ache, energy, skin, mood, skinRec } = dx);
+    metrics = dx;
+  } else {
+    // recording too short to read honestly — say so, don't fabricate depth
+    const amp = getP15Amp();
+    surprise = (window.getP6LungSurprise && window.getP6LungSurprise()) || (0.3 + (p15Lung.breath % 1) * 0.65);
+    ache = Math.max(0.1, 1 - (p15Lung.age > 18 ? amp + 0.25 : 0.7));
+    energy = Math.min(1, amp + 0.15);
+    skin = 'Too brief to read — speak ~3+ seconds for a real skin diagnosis.';
+    skinRec = 'Record a little longer next time so the Lung Eye can observe your breath.';
+    mood = 'Warming up';
+    metrics = { energy, steadiness: 0, radiance: 0, presence: 0 };
+  }
 
-  // Skin analysis from p6 lung (Da Vinci observation)
-  let skin = 'Balanced. Soft sfumato resonance.';
-  if (surprise > 0.65) skin = 'Luminous tension — high radiance potential, micro-movement visible.';
-  else if (ache > 0.55) skin = 'Needs deep hydration veil. Low breath energy shows as matte.';
-  else if (energy > 0.8) skin = 'Vibrant, full circulation glow. Pores appear refined.';
-
-  // Mood from breath variance + surprise
-  let mood = 'Centered harmony';
-  if (surprise > 0.55 && ache < 0.4) mood = 'Empowered, magnetic, ready to be seen';
-  else if (ache > 0.6) mood = 'Introspective ache — honest beauty, craving ritual';
-  else if (energy < 0.45) mood = 'Gentle retreat state — protect your glow';
-
-  // Store session
+  // Store session (now carries real metrics + a concrete recommendation)
   currentVoiceSession = {
     id: Date.now(), url, surprise: parseFloat(surprise.toFixed(3)), ache: parseFloat(ache.toFixed(3)),
-    energy: parseFloat(energy.toFixed(3)), skin, mood, lung: {...p15Lung}, ts: new Date().toISOString()
+    energy: parseFloat(energy.toFixed(3)), skin, mood, skinRec,
+    metrics: {
+      energy: +metrics.energy.toFixed(3), steadiness: +(metrics.steadiness||0).toFixed(3),
+      radiance: +(metrics.radiance||0).toFixed(3), presence: +(metrics.presence||0).toFixed(3),
+    },
+    lung: {...p15Lung}, ts: new Date().toISOString()
   };
 
-  // Render analysis (SENSE + prominent)
+  // Render analysis (SENSE + prominent) — real metric bars + diagnosis + recommendation
   const anal = document.getElementById('voice-analysis');
   anal.classList.remove('hidden');
+  const bar = (label, v) => `<div class="metric"><span class="metric-label">${label}</span><div class="metric-track"><div class="metric-fill" style="width:${Math.round((v||0)*100)}%"></div></div><span class="metric-pct">${Math.round((v||0)*100)}</span></div>`;
   anal.innerHTML = `
-    <div class="skin-mood">
-      <div class="stat"><span class="label">p6 Surprise</span><div class="val">${surprise.toFixed(2)}</div></div>
-      <div class="stat"><span class="label">Skin State</span><div class="val">${skin}</div></div>
-      <div class="stat"><span class="label">Mood Resonance</span><div class="val">${mood}</div></div>
-      <div class="stat"><span class="label">Breath Energy</span><div class="val">${(energy*100).toFixed(0)}%</div></div>
+    <div class="dx-metrics">
+      ${bar('Radiance', metrics.radiance)}
+      ${bar('Breath energy', metrics.energy)}
+      ${bar('Steadiness', metrics.steadiness)}
+      ${bar('Presence', metrics.presence)}
     </div>
-    <div class="emergent">Lung Fragment age ${p15Lung.age} • Ache fuel ${ache.toFixed(2)}</div>
+    <div class="dx-skin"><strong>Skin reading</strong><br>${skin}</div>
+    <div class="dx-rec"><strong>✨ Recommended ritual</strong><br>${skinRec}</div>
+    <div class="dx-mood"><strong>Mood resonance:</strong> ${mood}</div>
   `;
 
   // Update shared p6 lung for cross (Legion one)
@@ -393,11 +495,16 @@ function consultVoiceBeauty() {
   const consult = document.createElement('div');
   consult.className = 'consult';
 
-  // p6 + da-vinci emergent advice (no rote, observed)
-  let advice = `Your ${s.skin.toLowerCase()} speaks. ${s.mood}. `;
-  if (s.surprise > 0.6) advice += 'High lung surprise = time for bold lip or highlight. Own the variance.';
-  else if (s.ache > 0.5) advice += 'Ache in breath = mask ritual tonight. Let the veil repair. Re-listen tomorrow.';
-  else advice += 'Steady breath = perfect for layered skincare. Add one new texture.';
+  // Lead with the REAL feature-driven reading + recommendation (deterministic from this voice)
+  let advice = `<em>${s.skin}</em><br><strong>Ritual:</strong> ${s.skinRec || 'Record ~3s to unlock a full recommendation.'}<br><strong>Mood:</strong> ${s.mood}. `;
+  // A second tip keyed to the actual weakest/strongest metric of THIS reading
+  const m = s.metrics || {};
+  if (m.energy != null) {
+    if (m.energy < 0.4) advice += 'Lowest signal is breath energy → prioritize hydration + rest over actives.';
+    else if (m.steadiness < 0.4) advice += 'Lowest signal is steadiness → soothe the barrier before anything else.';
+    else if (m.radiance > 0.6) advice += 'Radiance is your strongest signal → this is a day to be seen.';
+    else advice += 'Signals are balanced → maintain, don\'t over-treat.';
+  }
 
   // FOMO + cross
   advice += ` <span class="fomo">Limited: 1 ritual slot left for your exact glow type today.</span>`;
