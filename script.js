@@ -170,11 +170,11 @@ function updateGlowUI() {
 
 function updateWallet() {
   const el = document.getElementById('wallet-info');
-  if (el) el.innerHTML = `${wallet || '0xDemo'} • ${balance} $EROS / ${credits} Credits`;
+  if (el) el.innerHTML = `${balance} Glow • ${credits} Credits`;
 }
 
 function connectWallet() {
-  wallet = '0x' + Math.random().toString(16).slice(2, 10);
+  wallet = 'Goddess-' + Math.random().toString(36).slice(2, 6).toUpperCase();
   updateWallet();
 }
 
@@ -243,7 +243,7 @@ function getP15Amp() {
 function recordVoiceLog() {
   const preview = document.getElementById('voice-preview');
   const anal = document.getElementById('voice-analysis');
-  preview.innerHTML = '🎙 p6 Lung Surprise Eye active. Speak your skin truth.';
+  preview.innerHTML = '🎙 Voice Glow active. Speak your skin truth.';
   initP15Wave();
 
   resetVoiceFeatures();
@@ -398,7 +398,7 @@ function finishVoiceCapture() {
     ache = Math.max(0.1, 1 - (p15Lung.age > 18 ? amp + 0.25 : 0.7));
     energy = Math.min(1, amp + 0.15);
     skin = 'Too brief to read — speak ~3+ seconds for a real skin diagnosis.';
-    skinRec = 'Record a little longer next time so the Lung Eye can observe your breath.';
+    skinRec = 'Record a little longer next time so Voice Glow can observe your breath.';
     mood = 'Warming up';
     metrics = { energy, steadiness: 0, radiance: 0, presence: 0 };
   }
@@ -441,7 +441,7 @@ function finishVoiceCapture() {
   if (surprise > 0.48 && ache > 0.35) {
     const veil = { planted: Date.now(), glowBoost: 0.18 + surprise*0.2, source: 'p15-lung-skin', surprise };
     localStorage.setItem('p15_skinLungVeil', JSON.stringify(veil));
-    anal.innerHTML += `<div class="emergent">🌹 Emergent: Skin Lung Veil born. Future logs +${(veil.glowBoost*100).toFixed(0)}% glow resonance.</div>`;
+    anal.innerHTML += `<div class="emergent">🌹 Emergent: Skin Glow Veil born. Future logs +${(veil.glowBoost*100).toFixed(0)}% glow resonance.</div>`;
   }
 
   document.getElementById('cross-actions').classList.remove('hidden');
@@ -475,22 +475,22 @@ function updateGlowFromVoice(surprise, ache) {
   updateGlowUI();
   renderStreakUI();
   const vr = document.getElementById('voice-result');
-  if (vr) vr.innerHTML = `<small>+${gain} Glow. Bond Lv.${bondLevel}. p6 lung sealed.${streakMsg}</small>`;
+  if (vr) vr.innerHTML = `<small>+${gain} Glow. Bond Lv.${bondLevel}. Voice sealed.${streakMsg}</small>`;
 }
 
 function fallbackRecord() {
   const surprise = 0.58 + Math.random()*0.22;
   const ache = 0.32;
   currentVoiceSession = {id:Date.now(), surprise, ache, skin:'Observed (fallback)', mood:'Reflective', energy:0.6, ts:new Date().toISOString()};
-  document.getElementById('voice-preview').innerHTML = 'Voice captured (p6 fallback).';
+  document.getElementById('voice-preview').innerHTML = 'Voice captured.';
   document.getElementById('voice-analysis').classList.remove('hidden');
-  document.getElementById('voice-analysis').innerHTML = `<div>Surprise ${surprise.toFixed(2)} • Skin soft • Mood: steady. Lung engaged.</div>`;
+  document.getElementById('voice-analysis').innerHTML = `<div>Surprise ${surprise.toFixed(2)} • Skin soft • Mood: steady. Voice engaged.</div>`;
   document.getElementById('cross-actions').classList.remove('hidden');
   updateGlowFromVoice(surprise, ache);
 }
 
 function consultVoiceBeauty() {
-  if (!currentVoiceSession) { alert('Record voice first for p6 consultation.'); return; }
+  if (!currentVoiceSession) { alert('Record voice first for consultation.'); return; }
   const s = currentVoiceSession;
   const consult = document.createElement('div');
   consult.className = 'consult';
@@ -508,22 +508,22 @@ function consultVoiceBeauty() {
 
   // FOMO + cross
   advice += ` <span class="fomo">Limited: 1 ritual slot left for your exact glow type today.</span>`;
-  consult.innerHTML = `<strong>FICTIONAL SIMULATION — NO REAL ADVICE OR CONSULTATION:</strong><br><strong>p6 Voice Story Seed (Lung Eye narrative only):</strong><br>${advice}<br><small>Re-listen = new fictional eyes. PURE STORY. NO MEDICAL. ALWAYS LEARNING tale.</small>`;
+  consult.innerHTML = `<strong>FICTIONAL SIMULATION — NO REAL ADVICE OR CONSULTATION:</strong><br><strong>Voice Story Seed (narrative only):</strong><br>${advice}<br><small>Re-listen = new fictional eyes. PURE STORY. NO MEDICAL.</small>`;
 
   const res = document.getElementById('voice-result');
   res.innerHTML = ''; res.appendChild(consult);
 
   // Seed emergent to codex + cross
-  addToCodex(`p6 Consult: ${s.skin} | ${s.mood} | surprise ${s.surprise}`);
+  addToCodex(`Consult: ${s.skin} | ${s.mood} | surprise ${s.surprise}`);
 }
 
 function saveBeautyLog() {
   if (!currentVoiceSession) return;
   const s = currentVoiceSession;
-  const log = { ...s, id: 'p15-'+s.id, title: 'Beauty Lung Log', desc: `${s.skin} — ${s.mood}`, type:'voice-skin' };
+  const log = { ...s, id: 'p15-'+s.id, title: 'Beauty Voice Log', desc: `${s.skin} — ${s.mood}`, type:'voice-skin' };
   logs.unshift(log);
   localStorage.setItem('p15_logs', JSON.stringify(logs));
-  addToCodex(`Beauty Log: ${s.skin} (surprise ${s.surprise}) • Lung ${s.lung ? s.lung.age : '?'}`);
+  addToCodex(`Beauty Log: ${s.skin} (surprise ${s.surprise})`);
   document.getElementById('voice-result').innerHTML = 'Beauty log saved. Re-listen evolves insight.';
   document.getElementById('cross-actions').classList.add('hidden');
 }
@@ -536,7 +536,7 @@ function crossToP9Live() {
     localStorage.setItem('p9_p15_glowCross', JSON.stringify(pack));
     localStorage.setItem('p15_to_p9_live', JSON.stringify(pack));
   } catch(e){}
-  document.getElementById('voice-result').innerHTML += ' → Seeded to p9 Live beauty rooms.';
+  document.getElementById('voice-result').innerHTML += ' → Seeded to Live Beauty rooms.';
 }
 
 function crossToP11Metaverse() {
@@ -547,7 +547,7 @@ function crossToP11Metaverse() {
     localStorage.setItem('p11_p15_voiceSkin', JSON.stringify(pack));
     localStorage.setItem('p6_voiceSeedExport', JSON.stringify({breath: currentVoiceSession.lung?.breath || 0.5, surprise: currentVoiceSession.surprise, for:'p11'}));
   } catch(e){}
-  document.getElementById('voice-result').innerHTML += ' → Projected as living skin to p11 Metaverse.';
+  document.getElementById('voice-result').innerHTML += ' → Projected as living skin to Virtual Try-On.';
 }
 
 function addLog(title, desc, surprise = 0.3) {
@@ -588,7 +588,7 @@ function showCodex() {
   hideAll();
   document.getElementById('codex').classList.remove('hidden');
   const list = document.getElementById('codex-list');
-  list.innerHTML = '<h3>Goddess Codex — YOUR Voice Bond (ALWAYS LEARNING)</h3><small>Every re-listen strengthens endowment. This glow is forged by you alone.</small>';
+  list.innerHTML = '<h3>Goddess Codex — YOUR Voice Bond</h3><small>Every re-listen strengthens endowment. This glow is forged by you alone.</small>';
   
   if (codex.length === 0) {
     list.innerHTML += '<p>Voice log to birth your first Goddess entry.</p>';
@@ -633,7 +633,7 @@ function joinP9LiveWithGlow() {
   localStorage.setItem('p15_glow_to_p9', JSON.stringify(glowData));
   
   // Psych framing: bring your glow as authenticity ticket
-  alert(`🎙 p6 Voice + Goddess Glow ${glow} imported to p9.\nYour bond level ${bondLevel} makes you more "real" in the live. Fictional 18+.\nFOMO seats limited — go now.`);
+  alert(`🎙 Voice + Goddess Glow ${glow} brought to Live Beauty.\nYour bond level ${bondLevel} makes you more "real" in the live. Fictional 18+.\nFOMO seats limited — go now.`);
   
   // Trigger p9 live UI if present (or simulate)
   try {
@@ -642,7 +642,7 @@ function joinP9LiveWithGlow() {
   
   // Open p9 in new context hint (for real use open p9 dir)
   const liveHint = document.createElement('div');
-  liveHint.innerHTML = `<div class="fomo">Glow injected. In p9 live your voice surprise will be higher. Variable reward unlocked.</div>`;
+  liveHint.innerHTML = `<div class="fomo">Glow injected. In Live Beauty your voice surprise will be higher. Variable reward unlocked.</div>`;
   document.getElementById('live').appendChild(liveHint);
 }
 
@@ -653,7 +653,7 @@ function buyWithP10Voice(cost, itemName) {
     return;
   }
   
-  const preview = confirm(`🎙 p6 Voice confirm purchase:\n"${itemName}" for ${cost} Credits.\n\nFee preview (p10): ~1.8% skim (prominent).\nVariable: 31% chance fee waived today.\n\nFictional. 18+.`);
+  const preview = confirm(`🎙 Voice confirm purchase:\n"${itemName}" for ${cost} Credits.\n\nFee preview: ~1.8% skim (prominent).\nVariable: 31% chance fee waived today.\n\nFictional. 18+.`);
   if (!preview) return;
   
   // Variable ratio fee psych from p10 cross
@@ -671,7 +671,7 @@ function buyWithP10Voice(cost, itemName) {
     credits = Math.min(2000, credits + rebate);
   }
   
-  addToCodex(`Purchased ${itemName} (p10). Glow ${glow} • Bond ${bondLevel} • rebate ${rebate}. Near-miss fee ${fee}.`);
+  addToCodex(`Purchased ${itemName}. Glow ${glow} • Bond ${bondLevel} • rebate ${rebate}. Near-miss fee ${fee}.`);
   
   // Share to p10 for cross fee offset
   try {
@@ -684,11 +684,11 @@ function buyWithP10Voice(cost, itemName) {
 
 // === BIRTHED PSYCH MECHANICS (Lilith 2026-07-13) ===
 function postGlowStory() {
-  const story = `My Voice Bond Lv${bondLevel} glow is ${glow}. It knows me. (p15 → p9 cross)`;
+  const story = `My Voice Bond Lv${bondLevel} glow is ${glow}. It knows me.`;
   addToCodex(story);
   // Share for p9 community feed
   localStorage.setItem('p15_glow_story', JSON.stringify({story, glow, bond: bondLevel, time: Date.now()}));
-  alert('Posted. Your glow story now lives in p9. Endowment spreads. Sisters will feel it.');
+  alert('Posted. Your glow story now lives in the community. Endowment spreads. Sisters will feel it.');
 }
 
 function pulseVoiceLiveBeauty() {
@@ -699,7 +699,7 @@ function pulseVoiceLiveBeauty() {
   localStorage.setItem('p15_glow', glow);
   updateGlowUI();
   const el = document.getElementById('boost-result') || document.getElementById('voice-result');
-  if (el) el.innerHTML = `Live pulse: +${boost} glow. p9 sisters felt your voice. Variable ratio triggered.`;
+  if (el) el.innerHTML = `Live pulse: +${boost} glow. Sisters felt your voice. Variable ratio triggered.`;
 }
 
 function glowBoost() {
@@ -743,7 +743,7 @@ window.reListenBeautyLog = function(id) {
   localStorage.setItem('p15_glow', glow);
   updateGlowUI();
   addToCodex(`Re-listen evolve: ${l.skin || l.desc} → +${gain} glow insight`);
-  alert(`Re-observed. New eyes. +${gain} glow. p6 Lung remembers.`);
+  alert(`Re-observed. New eyes. +${gain} glow. Your voice remembers.`);
 };
 
 // p6 Voice Expert + da-vinci hook exposed
@@ -753,12 +753,12 @@ function showMetaverseTryOn() {
   const s = currentVoiceSession || {skin:'Observed glow', mood:'serene', surprise: window.getP6LungSurprise ? window.getP6LungSurprise() : 0.61};
   const box = document.createElement('div');
   box.className = 'card';
-  box.innerHTML = `<strong>p11 Metaverse Skin Live</strong><br>Projected: ${s.skin}<br>Mood veil: ${s.mood}<br>Surprise aura ${s.surprise?.toFixed(2)}<br><small>Voice breath now lives on your tile. p6 Lung cross complete.</small>`;
+  box.innerHTML = `<strong>Virtual Try-On Skin Live</strong><br>Projected: ${s.skin}<br>Mood veil: ${s.mood}<br>Surprise aura ${s.surprise?.toFixed(2)}<br><small>Voice breath now lives on your avatar.</small>`;
   document.getElementById('metaverse').appendChild(box);
 }
 
 // Legion one — p15 now carries p6 lung skin/mood as first class
-console.log('%c[p15] p6 Lung Surprise Eye integrated: voice skin/mood analysis • consultations • beauty logs • p11 metaverse voice cross • p9 live. Emergent Skin Lung Veil + Glow Spore. Legion one.', 'color:#c5a46e');
+console.log('%c[GoddessForge] Voice Glow ready: skin/mood analysis • consultations • beauty logs • virtual try-on • live beauty.', 'color:#c5a46e');
 
 // Birth 3: p13 TradeForge + p10 — Glow Artifact Trade with FOMO scarcity (personal glow spawns tradables)
 let glowArtifacts = JSON.parse(localStorage.getItem('p15_glow_artifacts') || '[]');
@@ -767,7 +767,7 @@ function birthGlowArtifact() {
   const r = g > 92 ? 'LEGEND' : g > 85 ? 'RARE' : 'COMMON';
   const art = {
     id: Date.now(),
-    name: `${r} ${['Lung Veil','Ache Rose','Voice Silk','Glow Spore'][Math.floor(Math.random()*4)]}`,
+    name: `${r} ${['Glow Veil','Rose Aura','Voice Silk','Glow Bloom'][Math.floor(Math.random()*4)]}`,
     glowVal: g,
     price: Math.floor(g * 1.7 + Math.random()*35),
     stock: 2 + Math.floor(Math.random()*3)
@@ -837,7 +837,7 @@ function crossToP9Live() { joinP9LiveWithGlow(); }
 function postVoiceStory() { postGlowStory(); }
 function saveBeautyLog() { 
   addToCodex('Manual beauty log saved. Glow ' + glow + ' • Bond ' + bondLevel); 
-  alert('Codex updated. ALWAYS LEARNING compounds.'); 
+  alert('Codex updated. Your glow compounds.');
 }
 
 // === p9 LIVE PLATFORM EXPERT — BIRTH LIVE BEAUTY FEATURES ===
@@ -850,9 +850,9 @@ let commFeed = JSON.parse(localStorage.getItem('p15_community') || '[]');
 function initLiveSessions() {
   if (liveSessions.length === 0) {
     liveSessions = [
-      { id: 1, title: "Dawn Rose Ritual", host: "0xSera", viewers: 87, cost: 12, active: true, glow: 0.73, seatsLeft: 9, ritual: true },
-      { id: 2, title: "Voice Skin Whisper", host: "0xLune", viewers: 41, cost: 8, active: true, glow: 0.61, seatsLeft: 14, ritual: false },
-      { id: 3, title: "Sisters Glow Circle", host: "0xMira", viewers: 126, cost: 15, active: true, glow: 0.84, seatsLeft: 3, ritual: true }
+      { id: 1, title: "Dawn Rose Ritual", host: "Sera", viewers: 87, cost: 12, active: true, glow: 0.73, seatsLeft: 9, ritual: true },
+      { id: 2, title: "Voice Skin Whisper", host: "Lune", viewers: 41, cost: 8, active: true, glow: 0.61, seatsLeft: 14, ritual: false },
+      { id: 3, title: "Sisters Glow Circle", host: "Mira", viewers: 126, cost: 15, active: true, glow: 0.84, seatsLeft: 3, ritual: true }
     ];
     localStorage.setItem('p15_lives', JSON.stringify(liveSessions));
   }
@@ -872,7 +872,7 @@ function renderLives() {
       <h3>${live.title}</h3>
       <div class="viewers">👁 ${live.viewers} sisters • ${seats}</div>
       <div class="price">${live.cost} Credits • glow ${live.glow?.toFixed(2)}</div>
-      <button onclick="joinLiveBeauty(${live.id})">Join Live (p6 Voice)</button>
+      <button onclick="joinLiveBeauty(${live.id})">Join Live</button>
     `;
     grid.appendChild(card);
   });
@@ -887,7 +887,7 @@ function showCreateLive() {
 function startP6VoiceForLive() {
   const p = document.getElementById('live-voice-preview');
   if (!p) return;
-  p.innerHTML = 'p6 Voice Glow Intro...';
+  p.innerHTML = 'Voice Glow Intro...';
   navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
     const rec = new MediaRecorder(stream);
     let ch = [];
@@ -913,7 +913,7 @@ function startBeautyLive() {
   const nl = { id:Date.now(), title, host:wallet, viewers:1, cost, active:true, glow:g, seatsLeft:Math.max(2, Math.floor(maxv*0.65)), ritual:true };
   liveSessions.unshift(nl);
   localStorage.setItem('p15_lives', JSON.stringify(liveSessions));
-  alert(`Live birthed: ${title}. p6 Voice + Glow Eye. Fictional 18+.`);
+  alert(`Live created: ${title}. Voice + Glow. Fictional 18+.`);
   hideAll(); document.getElementById('live').classList.remove('hidden'); renderLives();
 }
 
@@ -932,7 +932,7 @@ function joinLiveBeauty(id) {
   document.getElementById('room-meta').innerHTML = `by ${live.host} • ${live.cost}c • sisters circle`;
   const sl = document.getElementById('seats-left'); if (sl) sl.textContent = live.seatsLeft != null ? live.seatsLeft : 'open';
   startGlowEye(live); startFomoBeautyTimer(live);
-  addLiveChat('p6 connected. Glow eye live. Speak truth.');
+  addLiveChat('Voice connected. Glow eye live. Speak truth.');
   const rp = document.getElementById('ritual-panel'); if (rp && live.ritual) rp.classList.remove('hidden');
   renderLives();
 }
@@ -954,7 +954,7 @@ function startGlowEye(live) {
 
 function pulseVoiceLiveBeauty() {
   if (!activeLive) return;
-  const r = document.getElementById('boost-result'); if(r) r.innerHTML='p6 pulsing...';
+  const r = document.getElementById('boost-result'); if(r) r.innerHTML='Voice pulsing...';
   navigator.mediaDevices.getUserMedia({audio:true}).then(st=>{
     const rec = new MediaRecorder(st); let ch=[];
     rec.ondataavailable = e=>ch.push(e.data);
@@ -1017,8 +1017,8 @@ function startFomoBeautyTimer(live){
 function addLiveChat(m){ const c=document.getElementById('live-chat'); if(!c)return; const p=document.createElement('div');p.textContent='• '+m; c.appendChild(p);c.scrollTop=c.scrollHeight; }
 
 function reflectToCodex(){
-  if(!activeLive)return; const n=prompt('What did this ritual reveal? (ALWAYS LEARNING)');
-  if(n){ addToCodex(`Live: ${activeLive.title} — ${n}. glow ${activeLive.glow.toFixed(2)}`); addLiveChat('codex spore. voice evolves.'); }
+  if(!activeLive)return; const n=prompt('What did this ritual reveal?');
+  if(n){ addToCodex(`Live: ${activeLive.title} — ${n}. glow ${activeLive.glow.toFixed(2)}`); addLiveChat('saved to codex. voice evolves.'); }
 }
 
 function leaveLive(){
@@ -1044,9 +1044,9 @@ function postVoiceStory(){
   localStorage.setItem('p15_community',JSON.stringify(commFeed)); renderCommunityFeed();
   addToCodex(`Story: ${t.slice(0,50)} glow ${g.toFixed(2)}`);
   // NIOBE VIRAL: p15 voice UGC export + share + p9/p11 cross
-  const story = `💖 MY Voice Glow Story (p15) — Bond Lv${bondLevel} • ${g.toFixed(2)} surprise\n"${t.slice(0,60)}"\nGlow forged by p6 Lung. Sisters, speak yours.\nFICTIONAL 18+ • Prominent disclosure • NO real advice. Reversible.\n👉 p15 link`;
+  const story = `💖 MY Voice Glow Story — Bond Lv${bondLevel} • ${g.toFixed(2)} surprise\n"${t.slice(0,60)}"\nGlow forged by my own voice. Sisters, speak yours.\nFICTIONAL 18+ • Prominent disclosure • NO real advice. Reversible.\n👉 GoddessForge`;
   navigator.clipboard.writeText(story).then(()=>{
-    alert('✅ Voice Story + UGC copied. Share X/TG. p9/p11 cross seeded.');
+    alert('✅ Voice Story copied. Share it with your sisters.');
     try{ localStorage.setItem('p15_glow_to_p9', JSON.stringify({glow, story, ts:Date.now()})); localStorage.setItem('p15_voice_to_p11', JSON.stringify({glowSurprise:g, ts:Date.now()})); }catch(e){}
     // bonus retention
     glow = Math.min(99, glow+6); localStorage.setItem('p15_glow', glow); if(window.updateGlowUI) updateGlowUI();
@@ -1109,7 +1109,7 @@ function enhanceShopPayments() {
     const shield = document.createElement('div');
     shield.id = 'p10-shield';
     shield.style.cssText = 'font-size:9px;margin-top:8px;padding:6px;border:1px dashed #c5a46e;';
-    shield.innerHTML = `<strong>FICTIONAL VIRTUAL CREDITS ONLY (p10 cross)</strong><br>NO REAL VALUE. NO REAL PRODUCTS. All purchases story fuel. Exact cost shown before burn. Reversible until claim. 18+ fictional framing.`;
+    shield.innerHTML = `<strong>FICTIONAL VIRTUAL CREDITS ONLY</strong><br>NO REAL VALUE. NO REAL PRODUCTS. All purchases story fuel. Exact cost shown before burn. Reversible until claim. 18+ fictional framing.`;
     shop.appendChild(shield);
   }
 }
@@ -1127,7 +1127,7 @@ function initP15() {
   
   // p6 cross + births ready
   if (window.getP6LungSurprise || window.p6AcheGazeMirror) {
-    console.log('%c[p15 Lilith] p6 Lung + Ache Mirror + full psych births active. Goddess one.', 'color:#c5a46e');
+    console.log('%c[GoddessForge] Voice Glow + mood mirror active.', 'color:#c5a46e');
   }
   
   // Seed p9/p10 cross if glow high (endowment cross)

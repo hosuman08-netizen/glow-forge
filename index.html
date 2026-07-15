@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GoddessForge • 여성 뷰티 플랫폼</title>
-  <meta name="description" content="여성을 위한 뷰티 앱. Voice 분석, Live, Shop. p6 Voice + p9 Live + p10 Credits. Legion p15. Fictional.">
+  <meta name="description" content="여성을 위한 뷰티 앱. 음성 글로우 분석, 라이브, 샵. Fictional 18+ simulation.">
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
   <div class="container">
     <header>
-      <div class="disclaimer">FICTIONAL BEAUTY SIMULATION ONLY • 18+ ONLY • NO REAL ADVICE • NO MEDICAL • PURE FICTIONAL NARRATIVE • p15 × p6 × p9 × p10 • ALL DATA LOCAL • 미꾸라지 SHIELD ACTIVE</div>
+      <div class="disclaimer">FICTIONAL BEAUTY SIMULATION ONLY • 18+ ONLY • NO REAL ADVICE • NO MEDICAL • PURE FICTIONAL NARRATIVE • ALL DATA LOCAL</div>
       <h1>GoddessForge</h1>
       <p class="tagline">Voice your glow. Live your beauty. (Fictional)</p>
       
@@ -35,27 +35,27 @@
       
       <div class="wallet">
         <button onclick="connectWallet()">🔗 Connect</button>
-        <div id="wallet-info">0x... • 1,420 $EROS / 890 Credits</div>
+        <div id="wallet-info">1,420 Glow • 890 Credits</div>
       </div>
-      
+
       <div class="nav">
-        <button onclick="showVoice()">🎙 Voice Log (p6 Lung)</button>
-        <button onclick="showLive()">📡 p9 Live Beauty</button>
-        <button onclick="showShop()">🛍 Shop (p10)</button>
+        <button onclick="showVoice()">🎙 Voice Glow</button>
+        <button onclick="showLive()">📡 Live Beauty</button>
+        <button onclick="showShop()">🛍 Shop</button>
         <button onclick="showCodex()">📓 Goddess Codex</button>
         <button onclick="showCommunity()">👥 Community</button>
-        <button onclick="showMetaverse()">🌐 p11 Try-On</button>
+        <button onclick="showMetaverse()">🌐 Virtual Try-On</button>
       </div>
     </header>
 
-    <!-- Voice Log: Full p6 Lung Surprise Eye + Da Vinci skin/mood analysis + consultations + logs + emergent -->
+    <!-- Voice Glow: skin/mood analysis + consultations + logs -->
     <div id="voice" class="section">
-      <h2>🎙 p6 Lung Surprise Eye — Voice Skin &amp; Mood Analysis</h2>
+      <h2>🎙 Voice Glow — Skin &amp; Mood Analysis</h2>
       <p class="psych-hint"><strong>FICTIONAL SIMULATION ONLY — NO REAL ADVICE, NO MEDICAL, NO BEAUTY CONSULTATION. PURE ARTISTIC NARRATIVE.</strong> Speak your truth in fiction. Your ache births fictional glow story. All output = story seeds only. Re-listen evolves the tale.</p>
       
       <div class="visualizer">
         <canvas id="p15-wave" width="460" height="118"></canvas>
-        <div class="overlay-label">Live Lung Sfumato • Golden Eye (p6)</div>
+        <div class="overlay-label">Live Voice Glow • Golden Aura</div>
       </div>
       
       <div class="controls">
@@ -69,21 +69,21 @@
       <div id="voice-result"></div>
       
       <div id="cross-actions" class="hidden" style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap">
-        <button onclick="joinP9LiveWithGlow()">📡 Seed p9 Live Glow (import p15 glow + bond)</button>
-        <button onclick="buyWithP10Voice(80, 'Voice Ritual Pass')">🎙 p10 Voice Pass for p9</button>
+        <button onclick="joinP9LiveWithGlow()">📡 Bring Glow to Live Beauty</button>
+        <button onclick="buyWithP10Voice(80, 'Voice Ritual Pass')">🎙 Voice Ritual Pass</button>
         <button onclick="saveBeautyLog()">📓 Save to Beauty Log</button>
       </div>
     </div>
 
-    <!-- Live Beauty Sessions (p9 Cross — Birth Live Features) -->
+    <!-- Live Beauty Sessions -->
     <div id="live" class="section hidden">
-      <h2>📡 Goddess Live Beauty • p9 Cross</h2>
-      <p class="fomo">Women-only glow rituals • p6 Voice Live • Limited seats • Bring p15 glow for authenticity boost • Fictional 18+</p>
+      <h2>📡 Goddess Live Beauty</h2>
+      <p class="fomo">Women-only glow rituals • Voice Live • Limited seats • Bring your glow for authenticity boost • Fictional 18+</p>
       <div id="live-list" class="live-grid"></div>
-      <button class="primary" onclick="showCreateLive()">✨ Host Beauty Live (p6 Voice)</button>
+      <button class="primary" onclick="showCreateLive()">✨ Host Beauty Live</button>
     </div>
 
-    <!-- Live Room — p6 Voice Live + Eye + FOMO + Women Community -->
+    <!-- Live Room -->
     <div id="live-room" class="section hidden">
       <div class="live-header">
         <div>
@@ -94,26 +94,26 @@
       </div>
 
       <div class="glow-meter">
-        <div>👁 p6 Lung Glow Eye — Radiance &amp; Authenticity (Voice Live)</div>
+        <div>👁 Voice Glow — Radiance &amp; Authenticity (Live)</div>
         <div id="glow-bar"><div id="live-glow-fill" style="width:0%"></div></div>
         <div><span id="glow-val">0.00</span> glow intensity • <span id="glow-fuel"></span></div>
       </div>
 
       <div class="fomo-bar">
         <div class="fomo">⚡ FOMO: <span id="seats-left"></span> sisters • <span id="fomo-timer"></span></div>
-        <button onclick="pulseVoiceLiveBeauty()">🎙️ Voice Pulse — Share Your Glow (p6 Live)</button>
+        <button onclick="pulseVoiceLiveBeauty()">🎙️ Voice Pulse — Share Your Glow</button>
         <button onclick="glowBoost()">💖 Glow Boost (variable • share credits)</button>
         <div id="boost-result"></div>
       </div>
 
       <div id="ritual-panel" class="hidden">
-        <div class="ritual">🌹 Sisters Glow Ritual • cast voice truth • grow shared mycelium</div>
+        <div class="ritual">🌹 Sisters Glow Ritual • cast voice truth • grow shared glow</div>
         <button onclick="castGlowRitual()">Speak Ritual Truth</button>
         <div id="ritual-out"></div>
       </div>
 
       <div class="cohost">
-        <label>Summon Sister Advisor (p3)</label>
+        <label>Summon Sister Advisor</label>
         <select id="advisor-select">
           <option value="">None</option>
           <option value="luna">Luna — Skin Whisper</option>
@@ -131,7 +131,7 @@
       <div id="live-chat" class="live-chat"></div>
 
       <div style="margin-top:12px">
-        <button onclick="reflectToCodex()">Reflect → Goddess Codex (ALWAYS LEARNING)</button>
+        <button onclick="reflectToCodex()">Reflect → Goddess Codex</button>
       </div>
     </div>
 
@@ -142,11 +142,11 @@
         <label>Session Title (for sisters)</label>
         <input id="live-title" placeholder="Dawn Glow Ritual • Voice Skincare">
 
-        <label>p6 Voice Live Intro</label>
-        <button onclick="startP6VoiceForLive()">🎙️ Record p6 Voice Glow Intro</button>
+        <label>Voice Live Intro</label>
+        <button onclick="startP6VoiceForLive()">🎙️ Record Voice Glow Intro</button>
         <div id="live-voice-preview"></div>
 
-        <label>Entry (Credits — p10 cross)</label>
+        <label>Entry (Credits)</label>
         <input id="entry-cost" type="number" value="12">
 
         <label>Max Sisters (scarcity FOMO)</label>
@@ -156,46 +156,46 @@
       </div>
     </div>
 
-    <!-- Shop + p13 Trade Birth -->
+    <!-- Shop + Glow Artifact Trade -->
     <div id="shop" class="section hidden">
-      <h2>🛍 Beauty Shop (p10) + Glow Artifact Trade (p13)</h2>
+      <h2>🛍 Beauty Shop + Glow Artifact Trade</h2>
       <div class="grid">
         <div class="card">Eclipse Serum (Limited) • 150 Credits • <span class="fomo">41 left</span><br><small>Variable ratio: surge chance on voice</small></div>
-        <button onclick="buyWithP10Voice(150, 'Eclipse Serum')">🎙 Voice Buy (p10 psych + fee)</button>
+        <button onclick="buyWithP10Voice(150, 'Eclipse Serum')">🎙 Voice Buy</button>
       </div>
       <div class="grid">
-        <div class="card">My Goddess Signature • 320 Credits • Endowment: locked to your p6 voice</div>
+        <div class="card">My Goddess Signature • 320 Credits • Endowment: locked to your voice</div>
         <button onclick="buyWithP10Voice(320, 'Goddess Signature')">Own More of You</button>
       </div>
       <div style="margin-top:12px">
-        <button onclick="birthGlowArtifactUI()" class="primary">✨ Birth Personal Glow Artifact (p6 glow → trade)</button>
+        <button onclick="birthGlowArtifactUI()" class="primary">✨ Create Personal Glow Artifact</button>
         <div id="trade-list" style="margin-top:8px;font-size:13px"></div>
-        <div style="font-size:9px;opacity:0.65;margin-top:6px;">ALL p10: FICTIONAL VIRTUAL CREDITS ONLY. NO REAL VALUE OR PRODUCTS. Exact cost + variable fee preview on confirm. Reversible pre-burn. 18+ fictional framing enforced.</div>
+        <div style="font-size:9px;opacity:0.65;margin-top:6px;">FICTIONAL VIRTUAL CREDITS ONLY. NO REAL VALUE OR PRODUCTS. Exact cost + variable fee preview on confirm. Reversible pre-burn. 18+ fictional framing enforced.</div>
       </div>
     </div>
 
     <!-- Codex -->
     <div id="codex" class="section hidden">
-      <h2>📓 Goddess Codex (ALWAYS LEARNING)</h2>
+      <h2>📓 Goddess Codex</h2>
       <div id="codex-list"></div>
     </div>
 
-    <!-- Women Community (p9 cross — Live seeded) + p12 Idea Fund Birth -->
+    <!-- Women Community + Idea Fund -->
     <div id="community" class="section hidden">
       <h2>👥 Sisters Circle (Women Community)</h2>
-      <p>Voice stories seed live. Fund beauty ideas with your glow (p12). p9 cross.</p>
+      <p>Voice stories seed live sessions. Fund beauty ideas with your glow.</p>
       <button onclick="postVoiceStory()">🎙️ Post Voice Story</button>
       <button onclick="fundIdeaUI()" class="primary">💡 Fund My Beauty Idea (glow-backed)</button>
       <div id="community-feed" class="notebook-entry" style="margin-top:10px"></div>
     </div>
 
-    <!-- p11 Metaverse + p6 Voice Skin cross -->
+    <!-- Virtual Try-On -->
     <div id="metaverse" class="section hidden">
-      <h2>🌐 p11 Virtual Try-On — Voice Skin Projection</h2>
-      <p>Voice from p6 Lung projects living skin aura + mood onto your metaverse land/avatar.</p>
-      <button onclick="crossToP11Metaverse()">Project Current Voice Skin to p11</button>
+      <h2>🌐 Virtual Try-On — Voice Skin Projection</h2>
+      <p>Your voice projects a living skin aura + mood onto your virtual avatar.</p>
+      <button onclick="crossToP11Metaverse()">Project Current Voice Skin</button>
       <div id="p11-cross-status" style="font-size:11px;margin-top:6px;color:#c5a46e"></div>
-      <button onclick="showMetaverseTryOn()">Enter Virtual Salon (p6 skin live)</button>
+      <button onclick="showMetaverseTryOn()">Enter Virtual Salon</button>
     </div>
 
     <!-- Privacy Notice (beauty data) -->
@@ -211,7 +211,7 @@
       <h3 style="color:#e8a0a0;margin:0 0 8px;">18+ FICTIONAL ONLY</h3>
       <p style="font-size:12px;margin:0 0 12px;">GoddessForge is <strong>pure fictional artistic simulation</strong>. NO real beauty/medical advice. NO real products. Voice data local only. 18+ confirmed required. By entering you affirm 18+ and accept fictional framing.</p>
       <button onclick="confirmAgeGate()" style="background:#c5a46e;color:#0a0806;padding:10px 20px;border:none;border-radius:6px;font-weight:600;">I am 18+ • Enter Fictional Realm</button>
-      <div style="margin-top:8px;font-size:9px;opacity:0.6;">p9 cross age gate • p15 미꾸라지</div>
+      <div style="margin-top:8px;font-size:9px;opacity:0.6;">18+ age gate</div>
     </div>
   </div>
 
