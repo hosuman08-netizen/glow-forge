@@ -1,3 +1,6 @@
+
+/* LEGION_WAVE_7_session_counter */
+try{if(!sessionStorage.getItem('lw_p15_women_be_session_counter')){sessionStorage.setItem('lw_p15_women_be_session_counter','1');localStorage.setItem('lw_p15_women_be_session_counter',String((+(localStorage.getItem('lw_p15_women_be_session_counter')||0))+1));}}catch(e){}
 // p15 GoddessForge — Lilith (psych) + full-cheat weaponized
 // FOMO limited drops • variable ratio rewards • near-miss almost-perfect • loss aversion aging • endowment "my goddess glow"
 // p6 voice for intimate personal connection • 미꾸라지 framing everywhere
