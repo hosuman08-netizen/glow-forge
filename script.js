@@ -62,6 +62,7 @@ function getStreakStatus() {
 
 // Records today's check-in. Idempotent per day (won't double-count).
 // Returns { count, best, isNew, broke, milestone } — milestone reward already applied to glow by caller if present.
+// 3H: weekly freeze once if exactly 1 day missed and count≥3 (Duolingo-class).
 function checkInStreak() {
   const s = loadStreak();
   const today = _todayStr();
@@ -69,9 +70,21 @@ function checkInStreak() {
     return { count: s.count, best: s.best, isNew: false, broke: false, milestone: null };
   }
   let broke = false;
+  let froze = false;
   if (s.lastDay) {
     const gap = _dayNumber(today) - _dayNumber(s.lastDay);
     if (gap === 1) { s.count += 1; }        // consecutive
+    else if (gap === 2 && (s.count || 0) >= 3) {
+      const ready = !s.shieldLast || ((new Date(today) - new Date(s.shieldLast)) / 86400000) >= 7;
+      if (ready) {
+        s.shieldLast = today;
+        s.count += 1; // bridge one miss
+        froze = true;
+        try { if (window.legionTrack) legionTrack('streak_freeze', { count: s.count }); } catch (e) {}
+      } else {
+        s.count = 1; broke = true;
+      }
+    }
     else if (gap > 1) { s.count = 1; broke = true; } // missed day(s) → restart
     else { s.count = Math.max(1, s.count); } // same/earlier (clock skew) — never lose a day
   } else {
@@ -93,7 +106,8 @@ function checkInStreak() {
     }
   }
   saveStreak(s);
-  return { count: s.count, best: s.best, isNew: true, broke, milestone };
+  try { if (window.legionTrack) legionTrack('streak', { count: s.count, froze: !!froze }); } catch (e) {}
+  return { count: s.count, best: s.best, isNew: true, broke, milestone, froze };
 }
 
 function renderStreakUI() {
@@ -105,10 +119,13 @@ function renderStreakUI() {
   if (count) count.textContent = st.count;
   if (flame) flame.textContent = st.count >= 7 ? '🔥' : st.count >= 1 ? '✨' : '🌑';
   if (sub) {
+    const sRaw = loadStreak();
+    const shieldReady = !sRaw.shieldLast || ((new Date(_todayStr()) - new Date(sRaw.shieldLast)) / 86400000) >= 7;
+    const shieldChrome = (st.count >= 3 && shieldReady) ? ' · 🛡️1' : '';
     if (st.checkedInToday) {
-      sub.textContent = `Checked in today. Best: ${st.best} 🏆`;
+      sub.textContent = `Checked in today. Best: ${st.best} 🏆` + shieldChrome;
     } else if (st.count > 0) {
-      sub.innerHTML = `<span class="fomo">Voice-log today to keep your ${st.count}-day streak alive.</span>`;
+      sub.innerHTML = `<span class="fomo">Voice-log today to keep your ${st.count}-day streak alive.</span>` + shieldChrome;
     } else if (st.brokenSince > 0) {
       sub.innerHTML = `<span class="fomo">Streak broke (missed ${st.brokenSince}d). Best was ${st.best} — rebuild it today.</span>`;
     } else {
