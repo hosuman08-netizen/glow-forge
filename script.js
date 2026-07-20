@@ -472,6 +472,7 @@ function finishVoiceCapture() {
 
   document.getElementById('cross-actions').classList.remove('hidden');
   updateGlowFromVoice(surprise, ache);
+  if (window.legionTrack) legionTrack('activate'); // core loop done: skin/glow diagnosis rendered
 }
 
 function updateGlowFromVoice(surprise, ache) {
@@ -513,6 +514,7 @@ function fallbackRecord() {
   document.getElementById('voice-analysis').innerHTML = `<div>Surprise ${surprise.toFixed(2)} • Skin soft • Mood: steady. Voice engaged.</div>`;
   document.getElementById('cross-actions').classList.remove('hidden');
   updateGlowFromVoice(surprise, ache);
+  if (window.legionTrack) legionTrack('activate'); // core loop done: skin/glow diagnosis rendered (fallback path)
 }
 
 function consultVoiceBeauty() {
@@ -1159,6 +1161,7 @@ function postVoiceStory(){
   addToCodex(`Story: ${t.slice(0,50)} glow ${g.toFixed(2)}`);
   // NIOBE VIRAL: p15 voice UGC export + share + p9/p11 cross
   const story = `💖 MY Voice Glow Story — Bond Lv${bondLevel} • ${g.toFixed(2)} surprise\n"${t.slice(0,60)}"\nGlow forged by my own voice. Sisters, speak yours.\nFICTIONAL 18+ • Prominent disclosure • NO real advice. Reversible.\n👉 GoddessForge`;
+  if (window.legionTrack) legionTrack('share');
   navigator.clipboard.writeText(story).then(()=>{
     alert('✅ Voice Story copied. Share it with your sisters.');
     try{ localStorage.setItem('p15_glow_to_p9', JSON.stringify({glow, story, ts:Date.now()})); localStorage.setItem('p15_voice_to_p11', JSON.stringify({glowSurprise:g, ts:Date.now()})); }catch(e){}
