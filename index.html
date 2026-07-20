@@ -54,14 +54,102 @@
       </div>
 
       <div class="nav">
+        <button onclick="showSkinScan()" class="nav-primary">📷 Skin Scan</button>
+        <button onclick="showRoutine()">🧴 Routine</button>
+        <button onclick="showIngredients()">🧪 Ingredients</button>
         <button onclick="showVoice()">🎙 Voice Glow</button>
-        <button onclick="showLive()">📡 Live Beauty</button>
+        <button onclick="showCodex()">📓 Codex</button>
+        <button onclick="showLive()">📡 Live</button>
         <button onclick="showShop()">🛍 Shop</button>
-        <button onclick="showCodex()">📓 Goddess Codex</button>
-        <button onclick="showCommunity()">👥 Community</button>
-        <button onclick="showMetaverse()">🌐 Virtual Try-On</button>
+        <button onclick="showCommunity()">👥 Sisters</button>
+        <button onclick="showMetaverse()">🌐 Try-On</button>
       </div>
     </header>
+
+    <!-- ============ PHOTO AI SKIN SCAN — real client-side pixel analysis ============ -->
+    <div id="skinscan" class="section hidden">
+      <h2>📷 AI Skin Scan — Selfie Analysis</h2>
+      <p class="psych-hint"><strong>FICTIONAL BEAUTY SIMULATION — NOT MEDICAL, NOT DIAGNOSTIC.</strong> A selfie is analyzed <strong>on your device only</strong> (never uploaded) into six glow scores + a playful glow-age. Real image math, honest numbers. Entertainment only — see a dermatologist for real skin concerns.</p>
+
+      <div class="scan-stage">
+        <canvas id="scan-canvas" width="320" height="320"></canvas>
+        <div id="scan-empty" class="scan-empty">Take or choose a well-lit, front-facing selfie to begin.</div>
+      </div>
+
+      <div class="controls">
+        <label for="scan-input" class="btn-file primary">📸 Take / Choose Selfie</label>
+        <input id="scan-input" type="file" accept="image/*" capture="user" style="display:none" onchange="onSkinScanFile(event)">
+        <button onclick="shareSkinScan()" id="scan-share-btn" class="hidden">💌 Share Glow Card</button>
+      </div>
+
+      <div id="scan-result" class="hidden">
+        <div class="scan-headline">
+          <div class="scan-overall"><span id="scan-overall-num">—</span><small>GLOW SCORE</small></div>
+          <div class="scan-age"><span id="scan-age-num">—</span><small>glow-age (fictional)</small></div>
+          <div class="scan-pc"><span id="scan-pc-season">—</span><small id="scan-pc-note">personal color</small></div>
+        </div>
+        <div id="scan-metrics" class="dx-metrics"></div>
+        <div id="scan-verdict" class="dx-rec"></div>
+        <div id="scan-focus" class="dx-mood"></div>
+      </div>
+
+      <!-- Progress diary: before/after over time -->
+      <div id="scan-diary" class="scan-diary hidden">
+        <h3>Progress Diary — watch your skin change</h3>
+        <div id="scan-diary-body"></div>
+      </div>
+    </div>
+
+    <!-- ============ AM/PM ROUTINE TRACKER ============ -->
+    <div id="routine" class="section hidden">
+      <h2>🧴 Daily Routine — AM / PM</h2>
+      <p class="psych-hint">Check off each step. A completed routine is your daily glow check-in — it keeps your streak alive and compounds real glow. Steps are yours to edit.</p>
+
+      <div class="routine-tabs">
+        <button id="rt-am" class="rt-tab active" onclick="switchRoutine('am')">☀️ Morning</button>
+        <button id="rt-pm" class="rt-tab" onclick="switchRoutine('pm')">🌙 Night</button>
+      </div>
+
+      <div id="routine-progress" class="routine-progress"></div>
+      <div id="routine-steps" class="routine-steps"></div>
+
+      <div class="routine-add">
+        <input id="routine-new-step" placeholder="Add a step (e.g. Vitamin C serum)" maxlength="40">
+        <button onclick="addRoutineStep()">+ Add</button>
+      </div>
+
+      <div class="routine-reminder">
+        <label>Gentle reminder time</label>
+        <input id="routine-remind-time" type="time" onchange="saveRoutineReminder()">
+        <div id="routine-remind-note" class="dim-note"></div>
+      </div>
+    </div>
+
+    <!-- ============ INGREDIENT / INCI ANALYZER + CONFLICT CHECKER ============ -->
+    <div id="ingredients" class="section hidden">
+      <h2>🧪 Ingredient Analyzer</h2>
+      <p class="psych-hint">Paste a product's full ingredient list (INCI). Each ingredient gets a <strong>hazard grade</strong> AND its <strong>evidence confidence</strong> — because a low grade means little without knowing how strong the data is. Informational, not medical.</p>
+
+      <div class="form">
+        <label>Product name (optional)</label>
+        <input id="ing-name" placeholder="e.g. Hydrating Toner">
+        <label>Ingredients (comma or line separated)</label>
+        <textarea id="ing-input" placeholder="Water, Glycerin, Niacinamide, Butylene Glycol, Retinol, Fragrance..."></textarea>
+      </div>
+      <div class="controls">
+        <button onclick="analyzeIngredients()" class="primary">Analyze</button>
+        <button onclick="saveToShelf()" id="ing-save-btn" class="hidden">💾 Save to My Shelf</button>
+      </div>
+
+      <div id="ing-summary" class="hidden"></div>
+      <div id="ing-conflicts" class="hidden"></div>
+      <div id="ing-chips" class="ing-chips"></div>
+
+      <div id="shelf-wrap" class="shelf-wrap hidden">
+        <h3>My Shelf — cross-product conflict check</h3>
+        <div id="shelf-body"></div>
+      </div>
+    </div>
 
     <!-- Voice Glow: skin/mood analysis + consultations + logs -->
     <div id="voice" class="section">

@@ -141,3 +141,87 @@ footer { margin-top:calc(var(--grid)*4); text-align:center; font-size:.62rem; op
 .journey-latest { font-size:12.5px; line-height:1.5; margin-top:calc(var(--grid)*1.25); padding-top:calc(var(--grid)); border-top:1px solid var(--line); }
 .journey-latest strong { color:var(--gold); font-size:11px; letter-spacing:.3px; }
 .journey-latest .dim { color:var(--dim); }
+
+/* ============================================================
+   BEST-IN-CLASS BEAUTY MODULES (2026-07-21) — Skin Scan, Routine, Ingredients
+   SENSE: one gold accent, 8px grid, restraint, ease-out, honest data
+   ============================================================ */
+
+.nav button.nav-primary { color:var(--gold); border-color:var(--line); background:rgba(197,164,110,.06); }
+.dim-note { font-size:10px; color:var(--dim); margin-top:4px; }
+.btn-file { display:inline-block; text-align:center; }
+
+/* ---- Photo AI Skin Scan ---- */
+.scan-stage { position:relative; margin:calc(var(--grid)*1.5) auto 0; width:100%; max-width:320px; aspect-ratio:1/1; background:#0f0d0a; border:1px solid var(--line); border-radius:14px; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+.scan-stage canvas { display:block; width:100%; height:100%; object-fit:cover; }
+.scan-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; font-size:12px; color:var(--dim); line-height:1.6; }
+#scan-result { margin-top:calc(var(--grid)*1.5); }
+.scan-headline { display:flex; gap:8px; margin-bottom:calc(var(--grid)*1.5); }
+.scan-headline > div { flex:1; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:calc(var(--grid)*1.25) 6px; text-align:center; }
+.scan-overall span, .scan-age span, .scan-pc span { display:block; font-size:26px; font-weight:700; color:var(--gold); letter-spacing:-0.5px; line-height:1.1; }
+.scan-pc span { font-size:15px; color:var(--rose); padding-top:6px; }
+.scan-headline small { display:block; font-size:9px; color:var(--dim); text-transform:uppercase; letter-spacing:.6px; margin-top:4px; }
+.scan-overall span { color:var(--rose); }
+
+/* Progress diary */
+.scan-diary { margin-top:calc(var(--grid)*2); }
+.diary-row { display:flex; gap:10px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:8px; margin-bottom:8px; }
+.diary-thumb { width:48px; height:48px; border-radius:8px; object-fit:cover; flex:none; border:1px solid var(--line); }
+.diary-meta { flex:1; font-size:11px; }
+.diary-meta .diary-date { color:var(--dim); font-size:10px; }
+.diary-score { font-size:20px; font-weight:700; color:var(--gold); flex:none; }
+.diary-delta { font-size:11px; margin-left:6px; }
+.diary-delta.up { color:#8fd6a0; } .diary-delta.down { color:#e8938f; } .diary-delta.flat { color:var(--dim); }
+.diary-compare { background:#15120f; border-left:2px solid var(--gold); border-radius:6px; padding:10px 12px; font-size:12px; line-height:1.6; margin-top:6px; }
+
+/* ---- Routine tracker ---- */
+.routine-tabs { display:flex; gap:6px; margin:calc(var(--grid)*1.5) 0 calc(var(--grid)); }
+.rt-tab { flex:1; }
+.rt-tab.active { background:var(--gold); color:#0a0806; border-color:var(--gold); }
+.routine-progress { font-size:11px; color:var(--dim); margin-bottom:calc(var(--grid)); }
+.routine-progress .rp-bar { height:6px; background:#2a2012; border-radius:99px; overflow:hidden; margin-top:5px; }
+.routine-progress .rp-fill { height:100%; background:linear-gradient(90deg,var(--rose),var(--gold)); transition:width .35s var(--ease); }
+.routine-steps { display:flex; flex-direction:column; gap:7px; }
+.rstep { display:flex; align-items:center; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:9px; padding:11px 12px; cursor:pointer; transition:border-color .16s var(--ease), background .16s var(--ease); user-select:none; }
+.rstep:hover { border-color:var(--gold); }
+.rstep .rbox { width:20px; height:20px; border-radius:6px; border:1.5px solid var(--dim); flex:none; display:flex; align-items:center; justify-content:center; font-size:12px; color:#0a0806; transition:all .16s var(--ease); }
+.rstep.done { background:rgba(197,164,110,.07); border-color:var(--gold); }
+.rstep.done .rbox { background:var(--gold); border-color:var(--gold); }
+.rstep .rname { flex:1; font-size:13px; }
+.rstep.done .rname { color:var(--dim); text-decoration:line-through; }
+.rstep .rdel { font-size:14px; color:var(--dim); opacity:0; transition:opacity .16s; padding:0 4px; }
+.rstep:hover .rdel { opacity:.7; }
+.routine-add { display:flex; gap:6px; margin:calc(var(--grid)*1.5) 0; }
+.routine-add input { flex:1; background:#1a1712; border:1px solid var(--line); color:var(--text); padding:9px; border-radius:7px; }
+.routine-add button { flex:none; }
+.routine-reminder { margin-top:calc(var(--grid)); }
+.routine-reminder label { display:block; font-size:12px; color:var(--dim); margin-bottom:5px; }
+.routine-reminder input[type=time] { background:#1a1712; border:1px solid var(--line); color:var(--text); padding:7px 9px; border-radius:7px; }
+.routine-done-banner { background:rgba(197,164,110,.09); border:1px solid var(--gold); border-radius:9px; padding:10px 12px; font-size:12px; color:var(--rose); margin-bottom:calc(var(--grid)); }
+
+/* ---- Ingredient analyzer ---- */
+.ing-chips { display:flex; flex-wrap:wrap; gap:7px; margin-top:calc(var(--grid)*1.5); }
+.ing-chip { display:flex; flex-direction:column; gap:2px; padding:7px 10px; border-radius:9px; border:1px solid var(--line); background:var(--card); font-size:11px; min-width:0; }
+.ing-chip .ic-name { font-weight:600; font-size:12px; color:var(--text); }
+.ing-chip .ic-meta { font-size:9.5px; color:var(--dim); }
+.ing-chip .ic-func { font-size:9.5px; color:var(--gold); }
+.ing-chip.g1 { border-left:4px solid #6fce8f; } /* green low hazard */
+.ing-chip.g2 { border-left:4px solid #e6c65c; } /* yellow moderate */
+.ing-chip.g3 { border-left:4px solid #e8807c; } /* red higher */
+.ing-chip.g0 { border-left:4px solid var(--dim); } /* unknown */
+.ic-grade { font-weight:700; }
+.ic-grade.g1 { color:#6fce8f; } .ic-grade.g2 { color:#e6c65c; } .ic-grade.g3 { color:#e8807c; } .ic-grade.g0 { color:var(--dim); }
+.ic-data { opacity:.85; }
+#ing-summary { background:var(--card); border:1px solid var(--line); border-radius:11px; padding:calc(var(--grid)*1.5); margin-top:calc(var(--grid)*1.5); font-size:12.5px; line-height:1.6; }
+#ing-summary .isum-grade { font-size:15px; font-weight:700; }
+#ing-conflicts { margin-top:calc(var(--grid)*1.25); }
+.conflict-card { background:#1c1310; border:1px solid #6e3a34; border-left:3px solid #e8807c; border-radius:9px; padding:10px 12px; margin-bottom:8px; font-size:12px; line-height:1.55; }
+.conflict-card.ok { background:#131c14; border-color:#3a6e42; border-left-color:#6fce8f; }
+.conflict-card .cc-title { font-weight:700; color:#e8938f; }
+.conflict-card.ok .cc-title { color:#8fd6a0; }
+.conflict-card .cc-myth { color:var(--dim); }
+.shelf-wrap { margin-top:calc(var(--grid)*2); }
+.shelf-item { display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--line); border-radius:9px; padding:9px 11px; margin-bottom:7px; font-size:12px; }
+.shelf-item .sh-name { flex:1; font-weight:600; }
+.shelf-item .sh-count { color:var(--dim); font-size:10px; }
+.shelf-item .sh-del { color:var(--dim); cursor:pointer; padding:0 4px; }

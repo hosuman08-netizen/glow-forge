@@ -1228,7 +1228,7 @@ function enforceAgeGate() {
 
 function deleteAllBeautyData() {
   if (!confirm('Delete ALL local beauty data (voice logs, glow, codex, bond)? Irreversible in this sim.')) return;
-  ['p15_logs','p15_codex','p15_readings','p15_glow','p15_bond','p15_lastlog','p15_credits','p15_community','p15_lungBeauty','p15_skinLungVeil','p15_streak','p15_badStreak'].forEach(k => localStorage.removeItem(k));
+  ['p15_logs','p15_codex','p15_readings','p15_glow','p15_bond','p15_lastlog','p15_credits','p15_community','p15_lungBeauty','p15_skinLungVeil','p15_streak','p15_badStreak','p15_scans','p15_routine','p15_shelf'].forEach(k => localStorage.removeItem(k));
   logs=[]; codex=[]; readings=[]; glow=50; bondLevel=1; lastLogDay=null; credits=890;
   alert('All beauty data purged. Fictional slate clean. Restart to re-seed.');
   location.reload();
@@ -1282,3 +1282,671 @@ function initP15() {
 }
 
 window.onload = initP15;
+// ============================================================
+// BEST-IN-CLASS BEAUTY UPGRADE (2026-07-21, Trinity/CPO)
+// Closes the identity gaps vs KR/global #1 beauty apps with REAL,
+// deterministic, on-device features — no fabricated numbers:
+//   1. Photo AI Skin Scan  — real pixel analysis → 6 glow scores +
+//      fictional glow-age + personal-color + spot-marker overlay.
+//   2. Progress Diary      — before/after scan history + trend.
+//   3. AM/PM Routine        — editable step tracker, feeds the streak.
+//   4. Ingredient Analyzer  — local INCI DB (hazard + EVIDENCE confidence,
+//      answering the EWG-only critique) + product-conflict checker + shelf.
+// All client-only, reversible, localStorage. Fictional/entertainment
+// framing preserved. Not medical. Same photo → same scores.
+// ============================================================
+function _clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+// ---------- 1 + 2. PHOTO AI SKIN SCAN + PROGRESS DIARY ----------
+let scans = JSON.parse(localStorage.getItem('p15_scans') || '[]');
+let _lastScan = null;
+
+function showSkinScan() {
+  hideAll();
+  document.getElementById('skinscan').classList.remove('hidden');
+  renderScanDiary();
+}
+
+function onSkinScanFile(ev) {
+  const file = ev.target && ev.target.files && ev.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = function () {
+    try { runSkinScan(img); } catch (e) { console.warn('scan failed', e); }
+    URL.revokeObjectURL(url);
+  };
+  img.onerror = function () { URL.revokeObjectURL(url); };
+  img.src = url;
+}
+
+// Draw the selfie (cover-fit) to the stage canvas, read real pixels, score them.
+function runSkinScan(img) {
+  const canvas = document.getElementById('scan-canvas');
+  if (!canvas) return;
+  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  // cover-fit draw
+  const s = Math.max(W / img.width, H / img.height);
+  const dw = img.width * s, dh = img.height * s;
+  ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+
+  const metrics = _analyzeSkinPixels(ctx, W, H);
+  const empty = document.getElementById('scan-empty');
+  if (empty) empty.style.display = 'none';
+  if (!metrics) return; // couldn't read enough pixels
+
+  // Overlay real detected spot markers + subtle scan chrome (SENSE: thin gold)
+  _drawScanOverlay(ctx, W, H, metrics.spots);
+
+  // 64px thumbnail for the diary
+  let thumb = '';
+  try {
+    const tc = document.createElement('canvas'); tc.width = 64; tc.height = 64;
+    tc.getContext('2d').drawImage(img, (64 - (img.width * (64 / Math.min(img.width, img.height)))) / 2,
+      (64 - (img.height * (64 / Math.min(img.width, img.height)))) / 2,
+      img.width * (64 / Math.min(img.width, img.height)), img.height * (64 / Math.min(img.width, img.height)));
+    thumb = tc.toDataURL('image/jpeg', 0.55);
+  } catch (e) {}
+
+  const rec = {
+    ts: new Date().toISOString(),
+    overall: metrics.overall, age: metrics.age, season: metrics.season,
+    seasonNote: metrics.seasonNote,
+    m: metrics.scores, focus: metrics.focus, verdict: metrics.verdict, thumb,
+  };
+  _lastScan = rec;
+  scans.unshift(rec);
+  if (scans.length > 20) scans.pop();
+  localStorage.setItem('p15_scans', JSON.stringify(scans));
+
+  renderScanResult(rec);
+  renderScanDiary();
+
+  // A skin scan IS a valid daily glow check-in — keep the streak honest & alive.
+  const gain = _clamp(Math.round((rec.overall - 60) / 7) + 3, 1, 12);
+  glow = Math.min(99, glow + gain);
+  localStorage.setItem('p15_glow', glow);
+  const sr = checkInStreak();
+  if (sr.milestone) {
+    glow = Math.min(99, glow + sr.milestone.reward);
+    localStorage.setItem('p15_glow', glow);
+    addToCodex(`🔥 Streak ${sr.milestone.title} (day ${sr.milestone.day}) via skin scan +${sr.milestone.reward} glow.`);
+  }
+  addToCodex(`Skin scan: glow ${rec.overall} · age ${rec.age} · ${rec.season}. Focus: ${rec.focus}`);
+  if (typeof updateGlowUI === 'function') updateGlowUI();
+  if (typeof renderStreakUI === 'function') renderStreakUI();
+  try { if (window.legionTrack) legionTrack('activate'); } catch (e) {} // core-loop diagnosis rendered
+}
+
+// Real pixel math over the central face region. Deterministic.
+function _analyzeSkinPixels(ctx, W, H) {
+  const x0 = Math.floor(W * 0.16), x1 = Math.floor(W * 0.84);
+  const y0 = Math.floor(H * 0.12), y1 = Math.floor(H * 0.90);
+  let img;
+  try { img = ctx.getImageData(0, 0, W, H).data; } catch (e) { return null; }
+
+  let n = 0, sumL = 0, sumL2 = 0, sumRed = 0, sumChroma = 0, sumR = 0, sumB = 0, hi = 0, grad = 0, gN = 0;
+  // coarse grid for spot detection
+  const GX = 12, GY = 14;
+  const cellL = new Float64Array(GX * GY), cellN = new Float64Array(GX * GY);
+
+  for (let y = y0; y < y1; y += 2) {
+    for (let x = x0; x < x1; x += 2) {
+      const i = (y * W + x) * 4;
+      const r = img[i], g = img[i + 1], b = img[i + 2];
+      const l = 0.299 * r + 0.587 * g + 0.114 * b;
+      n++; sumL += l; sumL2 += l * l;
+      sumRed += Math.max(0, r - (g + b) / 2);
+      sumChroma += Math.max(r, g, b) - Math.min(r, g, b);
+      sumR += r; sumB += b;
+      if (l > 200) hi++;
+      if (x + 2 < x1) {
+        const j = (y * W + (x + 2)) * 4;
+        const l2 = 0.299 * img[j] + 0.587 * img[j + 1] + 0.114 * img[j + 2];
+        grad += Math.abs(l - l2); gN++;
+      }
+      const gx = Math.min(GX - 1, Math.floor((x - x0) / (x1 - x0) * GX));
+      const gy = Math.min(GY - 1, Math.floor((y - y0) / (y1 - y0) * GY));
+      const ci = gy * GX + gx; cellL[ci] += l; cellN[ci] += 1;
+    }
+  }
+  if (n < 60) return null;
+
+  const meanL = sumL / n;
+  const stdL = Math.sqrt(Math.max(0, sumL2 / n - meanL * meanL));
+  const meanRed = sumRed / n;
+  const meanChroma = sumChroma / n;
+  const hiRatio = hi / n;
+  const meanGrad = gN ? grad / gN : 0;
+  const warm = (sumR - sumB) / n; // >0 = warm undertone
+
+  // Detect real dark-spot cells (notably darker than the face mean)
+  const spots = [];
+  for (let ci = 0; ci < cellL.length; ci++) {
+    if (cellN[ci] < 4) continue;
+    const cl = cellL[ci] / cellN[ci];
+    if (cl < meanL * 0.74 && cl > 18) { // darker patch, not pure shadow/hair
+      const gx = ci % GX, gy = Math.floor(ci / GX);
+      spots.push({
+        x: x0 + (gx + 0.5) / GX * (x1 - x0),
+        y: y0 + (gy + 0.5) / GY * (y1 - y0),
+        d: (meanL - cl) / meanL,
+      });
+    }
+  }
+  spots.sort((a, b) => b.d - a.d);
+  const spotCount = spots.length;
+
+  // ---- Map real signals → 0..100 glow scores (deterministic, honest ranges) ----
+  const scores = {
+    radiance: _clamp(Math.round(38 + (meanL - 60) / 150 * 52 + hiRatio * 30), 25, 98),
+    tone:     _clamp(Math.round(100 - stdL * 1.12), 34, 98),
+    texture:  _clamp(Math.round(100 - meanGrad * 3.1), 30, 98),
+    calm:     _clamp(Math.round(100 - meanRed * 2.3), 34, 98),
+    clarity:  _clamp(Math.round(96 - spotCount * 4.4), 34, 98),
+    moisture: _clamp(Math.round(92 - Math.abs(hiRatio - 0.06) * 360), 34, 96),
+  };
+  const overall = Math.round(
+    (scores.radiance + scores.tone + scores.texture + scores.calm + scores.clarity + scores.moisture) / 6
+  );
+  const age = _clamp(Math.round(
+    22 + (100 - scores.texture) * 0.28 + (100 - scores.tone) * 0.18 + (100 - scores.clarity) * 0.14
+  ), 16, 70);
+
+  // Weakest metric → concrete, honest focus advice (not medical)
+  const LABELS = { radiance: 'Radiance', tone: 'Even tone', texture: 'Smoothness', calm: 'Calm (low redness)', clarity: 'Clarity', moisture: 'Moisture' };
+  const REC = {
+    radiance: 'Boost radiance with gentle exfoliation + a vitamin-C serum in the morning, and always finish with SPF.',
+    tone: 'Even your tone over weeks with niacinamide and daily sunscreen — pigment fades slowly, so stay consistent.',
+    texture: 'Smooth texture with a low-strength retinoid a few nights a week; introduce it slowly to avoid irritation.',
+    calm: 'Calm redness with a fragrance-free centella or cica cream and a short break from strong actives.',
+    clarity: 'For clarity, keep pores clear with a BHA (salicylic acid) 2–3× a week and never skip nightly cleansing.',
+    moisture: 'Lock in moisture: hyaluronic serum on damp skin, sealed with a ceramide moisturizer.',
+  };
+  let weakKey = 'radiance', weakVal = 999;
+  for (const k in scores) if (scores[k] < weakVal) { weakVal = scores[k]; weakKey = k; }
+  let strongKey = 'radiance', strongVal = -1;
+  for (const k in scores) if (scores[k] > strongVal) { strongVal = scores[k]; strongKey = k; }
+  const focus = `Strongest: ${LABELS[strongKey]} (${scores[strongKey]}). Focus area: ${LABELS[weakKey]} (${scores[weakKey]}).`;
+  const verdict = `<strong>✨ Your ritual focus:</strong> ${REC[weakKey]}`;
+
+  // ---- Personal color (undertone + value) ----
+  const isWarm = warm > 5, isCool = warm < -3;
+  const isLight = meanL > 140;
+  let season, seasonNote;
+  if (isWarm) {
+    season = isLight ? 'Spring Warm' : 'Autumn Warm';
+    seasonNote = isLight ? 'coral, peach, warm ivory, camel' : 'terracotta, olive, mustard, deep gold';
+  } else if (isCool) {
+    season = isLight ? 'Summer Cool' : 'Winter Cool';
+    seasonNote = isLight ? 'rose, lavender, soft blue, cool grey' : 'jewel tones, true red, navy, pure white';
+  } else {
+    season = isLight ? 'Light Neutral' : 'Deep Neutral';
+    seasonNote = 'soft neutrals both warm & cool suit you — a flexible palette';
+  }
+
+  return { scores, overall, age, focus, verdict, season, seasonNote, spots: spots.slice(0, 12) };
+}
+
+function _drawScanOverlay(ctx, W, H, spots) {
+  // thin corner brackets (AI-scan chrome, restrained)
+  ctx.save();
+  ctx.strokeStyle = 'rgba(197,164,110,0.55)';
+  ctx.lineWidth = 1.5;
+  const m = 14, len = 22;
+  [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]].forEach(([cx, cy, sx, sy]) => {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + sy * len); ctx.lineTo(cx, cy); ctx.lineTo(cx + sx * len, cy);
+    ctx.stroke();
+  });
+  // real detected spot rings
+  ctx.strokeStyle = 'rgba(232,144,143,0.85)';
+  ctx.lineWidth = 1.3;
+  (spots || []).forEach(sp => {
+    ctx.beginPath();
+    ctx.arc(sp.x, sp.y, 7 + sp.d * 10, 0, Math.PI * 2);
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function renderScanResult(rec) {
+  const box = document.getElementById('scan-result');
+  if (!box) return;
+  box.classList.remove('hidden');
+  document.getElementById('scan-overall-num').textContent = rec.overall;
+  document.getElementById('scan-age-num').textContent = rec.age;
+  document.getElementById('scan-pc-season').textContent = rec.season;
+  const pcNote = document.getElementById('scan-pc-note');
+  if (pcNote) pcNote.textContent = rec.seasonNote;
+
+  const LABELS = { radiance: 'Radiance', tone: 'Even tone', texture: 'Smoothness', calm: 'Calm', clarity: 'Clarity', moisture: 'Moisture' };
+  const bar = (label, v) => `<div class="metric"><span class="metric-label">${label}</span><div class="metric-track"><div class="metric-fill" style="width:${v}%"></div></div><span class="metric-pct">${v}</span></div>`;
+  document.getElementById('scan-metrics').innerHTML =
+    Object.keys(LABELS).map(k => bar(LABELS[k], rec.m[k])).join('');
+  document.getElementById('scan-verdict').innerHTML = rec.verdict;
+  document.getElementById('scan-focus').textContent = rec.focus;
+  const sb = document.getElementById('scan-share-btn');
+  if (sb) sb.classList.remove('hidden');
+}
+
+function renderScanDiary() {
+  const wrap = document.getElementById('scan-diary');
+  const body = document.getElementById('scan-diary-body');
+  if (!wrap || !body) return;
+  if (!scans.length) { wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+
+  let html = '';
+  // Before/after headline when there are ≥2 scans
+  if (scans.length >= 2) {
+    const now = scans[0], first = scans[scans.length - 1];
+    const delta = now.overall - first.overall;
+    const dir = delta > 1 ? 'up' : delta < -1 ? 'down' : 'flat';
+    const word = delta > 1 ? `up ${delta} points` : delta < -1 ? `down ${Math.abs(delta)} points` : 'holding steady';
+    const days = Math.max(1, Math.round((new Date(now.ts) - new Date(first.ts)) / 864e5));
+    html += `<div class="diary-compare">Over ${scans.length} scans (${days} day${days > 1 ? 's' : ''}) your glow score is
+      <strong class="diary-delta ${dir}">${word}</strong> — from ${first.overall} to ${now.overall}.
+      ${delta > 1 ? 'Your routine is working. Keep going.' : delta < -1 ? 'A hydration + rest reset will bring it back.' : 'Consistency is paying off.'}
+      ${_sparkline(scans.map(s => s.overall / 100).reverse())}</div>`;
+  }
+  // history rows (newest first)
+  scans.slice(0, 8).forEach((s, idx) => {
+    const prev = scans[idx + 1];
+    let deltaHtml = '';
+    if (prev) {
+      const d = s.overall - prev.overall;
+      const cls = d > 0 ? 'up' : d < 0 ? 'down' : 'flat';
+      deltaHtml = `<span class="diary-delta ${cls}">${d > 0 ? '▲' + d : d < 0 ? '▼' + Math.abs(d) : '—'}</span>`;
+    }
+    html += `<div class="diary-row">
+      ${s.thumb ? `<img class="diary-thumb" src="${s.thumb}" alt="scan">` : '<div class="diary-thumb"></div>'}
+      <div class="diary-meta"><div>${s.season} · age ${s.age}</div><div class="diary-date">${new Date(s.ts).toLocaleDateString()} ${new Date(s.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div></div>
+      <div class="diary-score">${s.overall}${deltaHtml}</div>
+    </div>`;
+  });
+  body.innerHTML = html;
+}
+
+function shareSkinScan() {
+  const s = _lastScan || scans[0];
+  if (!s) return;
+  const card = `✨ My Glow Scan — score ${s.overall}/100, glow-age ${s.age}\n` +
+    `Radiance ${s.m.radiance} · Tone ${s.m.tone} · Smoothness ${s.m.texture} · Clarity ${s.m.clarity}\n` +
+    `Personal color: ${s.season} (${s.seasonNote})\n` +
+    `Analyzed on-device by GoddessForge — fictional beauty sim, not medical. Scan yours 📷`;
+  try { if (window.legionTrack) legionTrack('share'); } catch (e) {}
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(card).then(
+      () => alert('✅ Glow card copied — share it with your sisters.'),
+      () => { try { prompt('Copy your glow card:', card); } catch (e) {} }
+    );
+  } else { try { prompt('Copy your glow card:', card); } catch (e) {} }
+}
+
+// ---------- 3. AM/PM ROUTINE TRACKER ----------
+const ROUTINE_DEFAULT = {
+  am: ['Gentle cleanser', 'Toner', 'Vitamin C serum', 'Moisturizer', 'Sunscreen (SPF)'],
+  pm: ['Oil / balm cleanser', 'Water cleanser', 'Treatment (retinol/acid)', 'Moisturizer'],
+};
+let routine = _loadRoutine();
+let _routineTab = 'am';
+
+function _loadRoutine() {
+  try {
+    const r = JSON.parse(localStorage.getItem('p15_routine') || 'null');
+    if (r && r.am && r.pm) return r;
+  } catch (e) {}
+  return { am: ROUTINE_DEFAULT.am.slice(), pm: ROUTINE_DEFAULT.pm.slice(), log: {}, remind: '' };
+}
+function _saveRoutine() { try { localStorage.setItem('p15_routine', JSON.stringify(routine)); } catch (e) {} }
+
+function showRoutine() {
+  hideAll();
+  document.getElementById('routine').classList.remove('hidden');
+  const rt = document.getElementById('routine-remind-time');
+  if (rt && routine.remind) rt.value = routine.remind;
+  renderRoutine();
+}
+
+function switchRoutine(which) {
+  _routineTab = which;
+  document.getElementById('rt-am').classList.toggle('active', which === 'am');
+  document.getElementById('rt-pm').classList.toggle('active', which === 'pm');
+  renderRoutine();
+}
+
+function _routineToday() {
+  const key = _todayStr();
+  routine.log = routine.log || {};
+  if (!routine.log[key]) routine.log[key] = { am: [], pm: [] };
+  return routine.log[key];
+}
+
+function renderRoutine() {
+  const steps = routine[_routineTab] || [];
+  const today = _routineToday();
+  const done = today[_routineTab] || [];
+  const stepsEl = document.getElementById('routine-steps');
+  const progEl = document.getElementById('routine-progress');
+  if (!stepsEl) return;
+
+  const doneCount = steps.filter((_, i) => done.includes(i)).length;
+  const pct = steps.length ? Math.round(doneCount / steps.length * 100) : 0;
+  if (progEl) {
+    const banner = (pct === 100 && steps.length)
+      ? `<div class="routine-done-banner">🌙 ${_routineTab === 'am' ? 'Morning' : 'Night'} routine complete — glow logged, streak kept alive.</div>` : '';
+    progEl.innerHTML = `${banner}${doneCount}/${steps.length} steps done today
+      <div class="rp-bar"><div class="rp-fill" style="width:${pct}%"></div></div>`;
+  }
+
+  stepsEl.innerHTML = '';
+  steps.forEach((name, i) => {
+    const isDone = done.includes(i);
+    const row = document.createElement('div');
+    row.className = 'rstep' + (isDone ? ' done' : '');
+    row.innerHTML = `<span class="rbox">${isDone ? '✓' : ''}</span><span class="rname">${_esc(name)}</span><span class="rdel" title="remove">✕</span>`;
+    row.querySelector('.rname').addEventListener('click', () => toggleRoutineStep(i));
+    row.querySelector('.rbox').addEventListener('click', () => toggleRoutineStep(i));
+    row.querySelector('.rdel').addEventListener('click', (e) => { e.stopPropagation(); removeRoutineStep(i); });
+    stepsEl.appendChild(row);
+  });
+}
+
+function toggleRoutineStep(i) {
+  const today = _routineToday();
+  const arr = today[_routineTab] = today[_routineTab] || [];
+  const at = arr.indexOf(i);
+  if (at >= 0) arr.splice(at, 1); else arr.push(i);
+  _saveRoutine();
+
+  // A fully completed routine = daily glow check-in (idempotent per day)
+  const steps = routine[_routineTab] || [];
+  const complete = steps.length > 0 && steps.every((_, idx) => arr.includes(idx));
+  if (complete) {
+    const already = _routineCredited(_routineTab);
+    if (!already) {
+      _markRoutineCredited(_routineTab);
+      glow = Math.min(99, glow + 5);
+      localStorage.setItem('p15_glow', glow);
+      const sr = checkInStreak();
+      if (sr.milestone) {
+        glow = Math.min(99, glow + sr.milestone.reward);
+        localStorage.setItem('p15_glow', glow);
+      }
+      addToCodex(`Routine complete (${_routineTab.toUpperCase()}) +5 glow. Consistency compounds.`);
+      if (typeof updateGlowUI === 'function') updateGlowUI();
+      if (typeof renderStreakUI === 'function') renderStreakUI();
+      try { if (window.legionTrack) legionTrack('activate'); } catch (e) {}
+    }
+  }
+  renderRoutine();
+}
+
+function _routineCredited(which) {
+  const today = _routineToday();
+  return !!(today._credited && today._credited[which]);
+}
+function _markRoutineCredited(which) {
+  const today = _routineToday();
+  today._credited = today._credited || {};
+  today._credited[which] = true;
+  _saveRoutine();
+}
+
+function addRoutineStep() {
+  const inp = document.getElementById('routine-new-step');
+  const v = (inp && inp.value || '').trim();
+  if (!v) return;
+  routine[_routineTab] = routine[_routineTab] || [];
+  routine[_routineTab].push(v.slice(0, 40));
+  if (inp) inp.value = '';
+  _saveRoutine();
+  renderRoutine();
+}
+
+function removeRoutineStep(i) {
+  routine[_routineTab].splice(i, 1);
+  // shift today's completed indices so checks stay aligned
+  const today = _routineToday();
+  today[_routineTab] = (today[_routineTab] || []).filter(x => x !== i).map(x => x > i ? x - 1 : x);
+  _saveRoutine();
+  renderRoutine();
+}
+
+function saveRoutineReminder() {
+  const rt = document.getElementById('routine-remind-time');
+  if (!rt) return;
+  routine.remind = rt.value;
+  _saveRoutine();
+  const note = document.getElementById('routine-remind-note');
+  if (note) {
+    note.textContent = rt.value
+      ? `Reminder set for ${rt.value}. (Open the app around then — this is a gentle in-app nudge, no notifications are sent.)`
+      : '';
+  }
+}
+
+// ---------- 4. INGREDIENT / INCI ANALYZER + CONFLICT CHECKER ----------
+// Local database. hazard 1-10 (EWG-style), but we ALSO surface evidence
+// confidence — the transparency the EWG-hazard-only approach is criticized for.
+const ING_DB = {
+  'water':            { h: 1, d: 'robust',   f: 'solvent base', c: [] },
+  'aqua':             { h: 1, d: 'robust',   f: 'solvent base', c: [] },
+  'glycerin':         { h: 1, d: 'robust',   f: 'humectant · draws moisture', c: [] },
+  'butylene glycol':  { h: 1, d: 'robust',   f: 'humectant · texture', c: [] },
+  'propylene glycol': { h: 3, d: 'robust',   f: 'humectant · can sensitize a few', c: [] },
+  'niacinamide':      { h: 1, d: 'robust',   f: 'brightening · barrier · pores', c: ['niacinamide'] },
+  'hyaluronic acid':  { h: 1, d: 'robust',   f: 'hydration · plumping', c: [] },
+  'sodium hyaluronate': { h: 1, d: 'robust', f: 'hydration · plumping', c: [] },
+  'retinol':          { h: 6, d: 'robust',   f: 'anti-aging · texture · potent', c: ['retinoid'] },
+  'retinal':          { h: 6, d: 'moderate', f: 'anti-aging retinoid', c: ['retinoid'] },
+  'retinyl palmitate':{ h: 5, d: 'moderate', f: 'mild retinoid', c: ['retinoid'] },
+  'adapalene':        { h: 5, d: 'robust',   f: 'retinoid · acne', c: ['retinoid'] },
+  'ascorbic acid':    { h: 3, d: 'robust',   f: 'vitamin C · antioxidant · brightening', c: ['vitc'] },
+  'ascorbyl glucoside': { h: 2, d: 'moderate', f: 'stable vitamin C', c: ['vitc'] },
+  'glycolic acid':    { h: 5, d: 'robust',   f: 'AHA exfoliant', c: ['aha'] },
+  'lactic acid':      { h: 3, d: 'robust',   f: 'gentle AHA · hydrating', c: ['aha'] },
+  'mandelic acid':    { h: 3, d: 'moderate', f: 'gentle AHA', c: ['aha'] },
+  'salicylic acid':   { h: 4, d: 'robust',   f: 'BHA · unclogs pores', c: ['bha'] },
+  'benzoyl peroxide': { h: 5, d: 'robust',   f: 'acne · antibacterial', c: ['bpo'] },
+  'azelaic acid':     { h: 2, d: 'robust',   f: 'redness · pigment · gentle', c: [] },
+  'copper tripeptide-1': { h: 3, d: 'moderate', f: 'peptide · repair', c: ['copper'] },
+  'ceramide np':      { h: 1, d: 'robust',   f: 'barrier lipid', c: [] },
+  'ceramide':         { h: 1, d: 'robust',   f: 'barrier lipid', c: [] },
+  'squalane':         { h: 1, d: 'robust',   f: 'lightweight emollient', c: [] },
+  'centella asiatica':{ h: 1, d: 'moderate', f: 'soothing · calming', c: [] },
+  'panthenol':        { h: 1, d: 'robust',   f: 'soothing · barrier', c: [] },
+  'allantoin':        { h: 1, d: 'robust',   f: 'soothing', c: [] },
+  'tocopherol':       { h: 2, d: 'robust',   f: 'vitamin E · antioxidant', c: [] },
+  'dimethicone':      { h: 2, d: 'robust',   f: 'silicone · smoothing seal', c: [] },
+  'zinc oxide':       { h: 2, d: 'robust',   f: 'mineral UV filter', c: [] },
+  'titanium dioxide': { h: 2, d: 'robust',   f: 'mineral UV filter', c: [] },
+  'avobenzone':       { h: 4, d: 'robust',   f: 'chemical UV filter', c: [] },
+  'fragrance':        { h: 7, d: 'moderate', f: 'scent · common irritant/allergen', c: [] },
+  'parfum':           { h: 7, d: 'moderate', f: 'scent · common irritant/allergen', c: [] },
+  'limonene':         { h: 5, d: 'moderate', f: 'fragrance · possible allergen', c: [] },
+  'linalool':         { h: 5, d: 'moderate', f: 'fragrance · possible allergen', c: [] },
+  'phenoxyethanol':   { h: 3, d: 'robust',   f: 'preservative', c: [] },
+  'methylparaben':    { h: 4, d: 'moderate', f: 'preservative (debated)', c: [] },
+  'alcohol denat':    { h: 4, d: 'moderate', f: 'solvent · can dry/sensitize', c: [] },
+  'denatured alcohol':{ h: 4, d: 'moderate', f: 'solvent · can dry/sensitize', c: [] },
+  'kaolin':           { h: 1, d: 'robust',   f: 'clay · oil-absorbing', c: [] },
+  'green tea extract':{ h: 1, d: 'moderate', f: 'antioxidant · soothing', c: [] },
+  'camellia sinensis leaf extract': { h: 1, d: 'moderate', f: 'green tea · antioxidant', c: [] },
+  'snail secretion filtrate': { h: 1, d: 'moderate', f: 'repair · hydration', c: [] },
+  'shea butter':      { h: 1, d: 'robust',   f: 'rich emollient', c: [] },
+  'jojoba oil':       { h: 1, d: 'robust',   f: 'balancing oil', c: [] },
+  'coconut oil':      { h: 2, d: 'moderate', f: 'occlusive · can clog some', c: [] },
+  'bakuchiol':        { h: 2, d: 'moderate', f: 'gentle retinol alternative', c: [] },
+  'peptide':          { h: 2, d: 'moderate', f: 'signal peptide · firmness', c: [] },
+  'arbutin':          { h: 2, d: 'moderate', f: 'brightening · pigment', c: [] },
+  'tranexamic acid':  { h: 2, d: 'moderate', f: 'pigment · melasma', c: [] },
+  'urea':             { h: 2, d: 'robust',   f: 'humectant + mild exfoliant', c: [] },
+  'aha':              { h: 5, d: 'robust',   f: 'exfoliating acid', c: ['aha'] },
+  'bha':              { h: 4, d: 'robust',   f: 'exfoliating acid', c: ['bha'] },
+};
+
+// Category-level conflict rules (checked among the whole ingredient set)
+const CONFLICT_RULES = [
+  { a: 'retinoid', b: 'aha', level: 'caution', title: 'Retinoid + AHA',
+    msg: 'Layering a retinoid with an AHA the same night can over-exfoliate and irritate. Alternate nights instead.' },
+  { a: 'retinoid', b: 'bha', level: 'caution', title: 'Retinoid + BHA',
+    msg: 'Retinoid with a BHA together can strip the barrier. Buffer with moisturizer or alternate nights.' },
+  { a: 'retinoid', b: 'bpo', level: 'avoid', title: 'Retinoid + Benzoyl Peroxide',
+    msg: 'Benzoyl peroxide can oxidize and deactivate many retinoids. Use BPO in the AM and the retinoid at night.' },
+  { a: 'retinoid', b: 'vitc', level: 'caution', title: 'Retinoid + Vitamin C',
+    msg: 'Fine for many, but can irritate together. A common split: vitamin C in the morning, retinoid at night.' },
+  { a: 'aha', b: 'bha', level: 'caution', title: 'AHA + BHA',
+    msg: 'Two exfoliating acids at once raise irritation risk. Occasional combos are ok; daily double-acid is not.' },
+  { a: 'copper', b: 'vitc', level: 'caution', title: 'Copper peptides + Vitamin C',
+    msg: 'Direct acids/vitamin C can destabilize copper peptides. Apply them at separate times.' },
+  { a: 'copper', b: 'aha', level: 'caution', title: 'Copper peptides + AHA',
+    msg: 'Low pH acids can destabilize copper peptides. Separate the applications.' },
+  // Myth-buster (transparency differentiator) — shown as a reassuring OK card
+  { a: 'vitc', b: 'niacinamide', level: 'ok', title: 'Vitamin C + Niacinamide',
+    msg: 'Old myth says these cancel out — modern formulations are perfectly fine together. No need to separate.' },
+];
+
+let shelf = JSON.parse(localStorage.getItem('p15_shelf') || '[]');
+let _lastAnalysis = null;
+
+function showIngredients() {
+  hideAll();
+  document.getElementById('ingredients').classList.remove('hidden');
+  renderShelf();
+}
+
+function _parseINCI(raw) {
+  return (raw || '')
+    .split(/[,\n;]+/)
+    .map(s => s.trim().toLowerCase().replace(/\([^)]*\)/g, '').replace(/[^a-z0-9\s-]/g, '').trim())
+    .filter(Boolean)
+    .slice(0, 60);
+}
+
+function _lookupIngredient(name) {
+  if (ING_DB[name]) return { name, ...ING_DB[name], known: true };
+  // loose contains-match for compound names (e.g. "sodium ... hyaluronate")
+  for (const key in ING_DB) {
+    if (name.includes(key) || key.includes(name)) return { name, ...ING_DB[key], known: true };
+  }
+  return { name, h: null, d: null, f: null, c: [], known: false };
+}
+
+function _gradeClass(h) { if (h == null) return 'g0'; if (h <= 2) return 'g1'; if (h <= 6) return 'g2'; return 'g3'; }
+function _dataWord(d) { return d ? d.charAt(0).toUpperCase() + d.slice(1) + ' evidence' : 'Not in local DB'; }
+
+function analyzeIngredients() {
+  const raw = (document.getElementById('ing-input') || {}).value || '';
+  const list = _parseINCI(raw);
+  const chips = document.getElementById('ing-chips');
+  const summary = document.getElementById('ing-summary');
+  const conflictsEl = document.getElementById('ing-conflicts');
+  if (!chips) return;
+  if (!list.length) { chips.innerHTML = '<div class="dim-note">Paste an ingredient list to analyze.</div>'; return; }
+
+  const parsed = list.map(_lookupIngredient);
+  _lastAnalysis = { name: (document.getElementById('ing-name') || {}).value || 'Untitled product', ingredients: list, ts: Date.now() };
+
+  // chips
+  chips.innerHTML = parsed.map(p => {
+    const g = _gradeClass(p.h);
+    const grade = p.h == null ? '—' : p.h;
+    return `<div class="ing-chip ${g}">
+      <span class="ic-name">${_esc(_titleCase(p.name))}</span>
+      <span class="ic-meta"><span class="ic-grade ${g}">Hazard ${grade}/10</span> · <span class="ic-data">${_dataWord(p.d)}</span></span>
+      ${p.f ? `<span class="ic-func">${_esc(p.f)}</span>` : '<span class="ic-func">function unknown locally</span>'}
+    </div>`;
+  }).join('');
+
+  // summary (honest: separates hazard from evidence strength)
+  const known = parsed.filter(p => p.known);
+  const avgH = known.length ? (known.reduce((s, p) => s + p.h, 0) / known.length) : null;
+  const reds = parsed.filter(p => p.h != null && p.h >= 7);
+  const robustShare = known.length ? Math.round(known.filter(p => p.d === 'robust').length / known.length * 100) : 0;
+  const benefits = [...new Set(known.filter(p => p.h <= 3 && p.f).map(p => p.f.split('·')[0].trim()))].slice(0, 5);
+  if (summary) {
+    summary.classList.remove('hidden');
+    const gLabel = avgH == null ? 'unrated' : avgH <= 2.5 ? 'gentle' : avgH <= 4.5 ? 'moderate' : 'assertive';
+    summary.innerHTML = `
+      <div class="isum-grade">${list.length} ingredients · profile: ${gLabel}${avgH != null ? ` (avg hazard ${avgH.toFixed(1)}/10)` : ''}</div>
+      <div style="margin-top:6px">${robustShare}% of matched ingredients have <strong>robust</strong> evidence — the rest are moderate/limited, so read grades with that in mind.</div>
+      ${benefits.length ? `<div style="margin-top:6px">Key benefits: ${benefits.map(_esc).join(', ')}.</div>` : ''}
+      ${reds.length ? `<div style="margin-top:6px;color:#e8938f">Watch: ${reds.map(p => _esc(_titleCase(p.name))).join(', ')} (higher-hazard / common irritant).</div>` : ''}
+      <div class="dim-note" style="margin-top:8px">Hazard scores are EWG-style and don't equal danger — dose, formulation and your own skin matter more. Informational, not medical.</div>`;
+  }
+
+  // conflicts within this single product
+  renderConflicts(conflictsEl, _collectCategories(parsed), _lastAnalysis.name);
+
+  const sv = document.getElementById('ing-save-btn');
+  if (sv) sv.classList.remove('hidden');
+}
+
+function _collectCategories(parsed) {
+  const cats = {};
+  parsed.forEach(p => (p.c || []).forEach(cat => { (cats[cat] = cats[cat] || []).push(_titleCase(p.name)); }));
+  return cats;
+}
+
+function renderConflicts(el, cats, scope) {
+  if (!el) return;
+  const cards = [];
+  CONFLICT_RULES.forEach(rule => {
+    if (cats[rule.a] && cats[rule.b]) {
+      const who = `${cats[rule.a].join(', ')} + ${cats[rule.b].join(', ')}`;
+      const badge = rule.level === 'avoid' ? '🚫 Avoid together' : rule.level === 'ok' ? '✅ Safe together' : '⚠️ Use with care';
+      cards.push(`<div class="conflict-card ${rule.level === 'ok' ? 'ok' : ''}">
+        <div class="cc-title">${badge} — ${rule.title}</div>
+        <div>${_esc(who)}</div>
+        <div class="${rule.level === 'ok' ? 'cc-myth' : ''}" style="margin-top:4px">${rule.msg}</div>
+      </div>`);
+    }
+  });
+  el.classList.remove('hidden');
+  el.innerHTML = (cards.length
+    ? `<h3>Compatibility${scope ? ' — ' + _esc(scope) : ''}</h3>` + cards.join('')
+    : `<div class="conflict-card ok"><div class="cc-title">✅ No known conflicts</div><div>None of the flagged actives clash in this set.</div></div>`);
+}
+
+function saveToShelf() {
+  if (!_lastAnalysis) return;
+  shelf.unshift(_lastAnalysis);
+  if (shelf.length > 15) shelf.pop();
+  localStorage.setItem('p15_shelf', JSON.stringify(shelf));
+  renderShelf();
+  addToCodex(`Saved "${_lastAnalysis.name}" to shelf (${_lastAnalysis.ingredients.length} ingredients).`);
+}
+
+function renderShelf() {
+  const wrap = document.getElementById('shelf-wrap');
+  const body = document.getElementById('shelf-body');
+  if (!wrap || !body) return;
+  if (!shelf.length) { wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+
+  let html = shelf.map((p, i) =>
+    `<div class="shelf-item"><span class="sh-name">${_esc(p.name)}</span><span class="sh-count">${p.ingredients.length} ing.</span><span class="sh-del" onclick="removeShelf(${i})">✕</span></div>`
+  ).join('');
+
+  // cross-product conflict: pool every ingredient across the shelf
+  const pooled = [];
+  shelf.forEach(p => p.ingredients.forEach(n => pooled.push(_lookupIngredient(n))));
+  const cats = _collectCategories(pooled);
+  const holder = document.createElement('div');
+  renderConflicts(holder, cats, 'your whole shelf');
+  html += holder.innerHTML;
+  body.innerHTML = html;
+}
+
+function removeShelf(i) {
+  shelf.splice(i, 1);
+  localStorage.setItem('p15_shelf', JSON.stringify(shelf));
+  renderShelf();
+}
+
+// small shared helpers
+function _esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function _titleCase(s) { return String(s || '').replace(/\b\w/g, c => c.toUpperCase()); }
