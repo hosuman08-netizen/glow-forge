@@ -8,6 +8,8 @@ let balance = 1420;
 let credits = 890;
 let logs = JSON.parse(localStorage.getItem('p15_logs') || '[]');
 let codex = JSON.parse(localStorage.getItem('p15_codex') || '[]');
+// Structured glow readings (the diagnosis depth, preserved for the Journey view)
+let readings = JSON.parse(localStorage.getItem('p15_readings') || '[]');
 let glow = parseInt(localStorage.getItem('p15_glow') || '87');
 let bondLevel = parseInt(localStorage.getItem('p15_bond') || '3'); // Voice Bond endowment
 let lastLogDay = localStorage.getItem('p15_lastlog') || null;
@@ -416,6 +418,9 @@ function finishVoiceCapture() {
     lung: {...p15Lung}, ts: new Date().toISOString()
   };
 
+  // Preserve this reading's real metrics for the Glow Journey (trends over time)
+  recordReading(currentVoiceSession);
+
   // Render analysis (SENSE + prominent) — real metric bars + diagnosis + recommendation
   const anal = document.getElementById('voice-analysis');
   anal.classList.remove('hidden');
@@ -586,23 +591,87 @@ function showShop() {
   document.getElementById('shop').classList.remove('hidden');
 }
 
+// Tiny inline SVG sparkline from an array of 0..1 values (oldest→newest).
+function _sparkline(vals, w = 240, h = 34) {
+  if (!vals.length) return '';
+  const pad = 3, iw = w - pad * 2, ih = h - pad * 2;
+  const step = vals.length > 1 ? iw / (vals.length - 1) : 0;
+  const pts = vals.map((v, i) => {
+    const x = pad + i * step;
+    const y = pad + ih - Math.max(0, Math.min(1, v)) * ih;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const last = pts[pts.length - 1].split(',');
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" aria-hidden="true">
+    <polyline points="${pts.join(' ')}" fill="none" stroke="url(#sparkg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="${last[0]}" cy="${last[1]}" r="2.6" fill="#c5a46e"/>
+    <defs><linearGradient id="sparkg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d8a38a"/><stop offset="1" stop-color="#c5a46e"/></linearGradient></defs>
+  </svg>`;
+}
+
 function showCodex() {
   hideAll();
   document.getElementById('codex').classList.remove('hidden');
   const list = document.getElementById('codex-list');
-  list.innerHTML = '<h3>Goddess Codex — YOUR Voice Bond</h3><small>Every re-listen strengthens endowment. This glow is forged by you alone.</small>';
-  
-  if (codex.length === 0) {
-    list.innerHTML += '<p>Voice log to birth your first Goddess entry.</p>';
-    return;
+  list.innerHTML = '<h3>Goddess Codex — Your Glow Journey</h3><small>Every voice reading is remembered. Watch your glow evolve — forged by you alone.</small>';
+
+  // === GLOW JOURNEY: real trend from preserved diagnostic readings ===
+  if (readings.length) {
+    const latest = readings[0];
+    const rows = [
+      ['Radiance', 'radiance'], ['Breath energy', 'energy'],
+      ['Steadiness', 'steadiness'], ['Presence', 'presence'],
+    ];
+    const journey = document.createElement('div');
+    journey.className = 'journey';
+    let html = `<div class="journey-head">${readings.length} reading${readings.length>1?'s':''} logged · latest ${new Date(latest.ts).toLocaleDateString()}</div>`;
+    html += '<div class="dx-metrics">';
+    rows.forEach(([label, key]) => {
+      const v = latest[key] || 0;
+      const avg = _priorAvg(key);
+      let trend = '';
+      if (avg != null) {
+        const delta = Math.round((v - avg) * 100);
+        if (delta > 2) trend = `<span class="trend up">▲ ${delta}</span>`;
+        else if (delta < -2) trend = `<span class="trend down">▼ ${Math.abs(delta)}</span>`;
+        else trend = `<span class="trend flat">— steady</span>`;
+      }
+      html += `<div class="metric"><span class="metric-label">${label}</span>
+        <div class="metric-track"><div class="metric-fill" style="width:${Math.round(v*100)}%"></div></div>
+        <span class="metric-pct">${Math.round(v*100)}</span>${trend}</div>`;
+    });
+    html += '</div>';
+    // Radiance sparkline over recent readings (oldest→newest) — the "it got better" moment
+    if (readings.length >= 2) {
+      const series = readings.slice(0, 12).map(r => r.radiance || 0).reverse();
+      const avgR = _priorAvg('radiance');
+      const nowR = latest.radiance || 0;
+      let verdict = 'Your glow is holding steady.';
+      if (avgR != null && nowR > avgR + 0.03) verdict = `Your radiance is up ${Math.round((nowR-avgR)*100)}% vs your average — you are glowing brighter.`;
+      else if (avgR != null && nowR < avgR - 0.03) verdict = `Radiance dipped below your average — a hydration + rest ritual will bring it back.`;
+      html += `<div class="journey-spark"><div class="spark-label">Radiance journey</div>${_sparkline(series)}<div class="spark-verdict">${verdict}</div></div>`;
+    }
+    html += `<div class="journey-latest"><strong>Latest reading:</strong> ${latest.skin || ''}<br><span class="dim">Mood: ${latest.mood || '—'}</span></div>`;
+    journey.innerHTML = html;
+    list.appendChild(journey);
+  } else {
+    list.innerHTML += '<p style="margin-top:10px">Record a voice glow (~3s) to birth your first reading and start your journey.</p>';
   }
-  
-  codex.slice(0,9).forEach(c => {
-    const div = document.createElement('div');
-    div.className = 'notebook-entry';
-    div.innerHTML = `<small>${new Date(c.time).toLocaleString()}</small><br>${c.note}<br><span class="fomo">Endowment: yours forever.</span>`;
-    list.appendChild(div);
-  });
+
+  // Notes below the journey
+  if (codex.length) {
+    const nh = document.createElement('h3');
+    nh.textContent = 'Ritual notes';
+    nh.style.marginTop = '18px';
+    list.appendChild(nh);
+    codex.slice(0,9).forEach(c => {
+      const div = document.createElement('div');
+      div.className = 'notebook-entry';
+      div.innerHTML = `<small>${new Date(c.time).toLocaleString()}</small><br>${c.note}`;
+      list.appendChild(div);
+    });
+  }
 }
 
 function showCommunity() {
@@ -621,6 +690,29 @@ function addToCodex(note) {
   codex.unshift({ time: Date.now(), note });
   if (codex.length > 22) codex.pop();
   localStorage.setItem('p15_codex', JSON.stringify(codex));
+}
+
+// Preserve the full diagnostic reading so the Journey can show real trends.
+// Only records honest readings (needs the 4 metrics computed from real signal).
+function recordReading(session) {
+  if (!session || !session.metrics) return;
+  const m = session.metrics;
+  if ((m.radiance || 0) === 0 && (m.steadiness || 0) === 0) return; // too-brief fallback → not honest depth
+  readings.unshift({
+    ts: session.ts || new Date().toISOString(),
+    radiance: m.radiance || 0, energy: m.energy || 0,
+    steadiness: m.steadiness || 0, presence: m.presence || 0,
+    skin: session.skin, mood: session.mood,
+  });
+  if (readings.length > 30) readings.pop();       // keep a rolling month of glow
+  localStorage.setItem('p15_readings', JSON.stringify(readings));
+}
+
+// Average of a metric across prior readings (excludes the newest = index 0).
+function _priorAvg(key) {
+  if (readings.length < 2) return null;
+  const past = readings.slice(1);
+  return past.reduce((s, r) => s + (r[key] || 0), 0) / past.length;
 }
 
 function hideAll() {
@@ -1096,8 +1188,8 @@ function enforceAgeGate() {
 
 function deleteAllBeautyData() {
   if (!confirm('Delete ALL local beauty data (voice logs, glow, codex, bond)? Irreversible in this sim.')) return;
-  ['p15_logs','p15_codex','p15_glow','p15_bond','p15_lastlog','p15_credits','p15_community','p15_lungBeauty','p15_skinLungVeil','p15_streak','p15_badStreak'].forEach(k => localStorage.removeItem(k));
-  logs=[]; codex=[]; glow=50; bondLevel=1; lastLogDay=null; credits=890;
+  ['p15_logs','p15_codex','p15_readings','p15_glow','p15_bond','p15_lastlog','p15_credits','p15_community','p15_lungBeauty','p15_skinLungVeil','p15_streak','p15_badStreak'].forEach(k => localStorage.removeItem(k));
+  logs=[]; codex=[]; readings=[]; glow=50; bondLevel=1; lastLogDay=null; credits=890;
   alert('All beauty data purged. Fictional slate clean. Restart to re-seed.');
   location.reload();
 }

@@ -125,3 +125,19 @@ footer { margin-top:calc(var(--grid)*4); text-align:center; font-size:.62rem; op
 .dx-skin strong, .dx-rec strong, .dx-mood strong { color:var(--gold); font-size:11px; letter-spacing:.3px; }
 .dx-rec { font-size:12.5px; line-height:1.5; margin:8px 0; padding:8px 10px; background:#15120f; border-left:2px solid var(--gold); border-radius:5px; }
 .dx-mood { font-size:12px; color:var(--dim); margin-top:6px; }
+
+/* === GLOW JOURNEY — Codex trend view over preserved readings === */
+.journey { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:calc(var(--grid)*1.5); margin:calc(var(--grid)*1.25) 0; }
+.journey-head { font-size:11px; color:var(--dim); letter-spacing:.3px; margin-bottom:calc(var(--grid)*1.25); }
+.journey .metric-label { width:96px; }
+.trend { font-size:10px; font-variant-numeric:tabular-nums; margin-left:6px; flex:none; }
+.trend.up { color:#8fd6a0; }
+.trend.down { color:#e8938f; }
+.trend.flat { color:var(--dim); }
+.journey-spark { margin:calc(var(--grid)*1.5) 0 calc(var(--grid)); }
+.spark-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; }
+.spark { display:block; background:#0f0d0a; border-radius:7px; padding:4px 0; }
+.spark-verdict { font-size:12px; color:var(--rose); margin-top:7px; line-height:1.5; }
+.journey-latest { font-size:12.5px; line-height:1.5; margin-top:calc(var(--grid)*1.25); padding-top:calc(var(--grid)); border-top:1px solid var(--line); }
+.journey-latest strong { color:var(--gold); font-size:11px; letter-spacing:.3px; }
+.journey-latest .dim { color:var(--dim); }
