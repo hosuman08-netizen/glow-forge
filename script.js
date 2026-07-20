@@ -227,6 +227,24 @@ function drawP15LungWave(amp, t, freq = null) {
   p15Ctx.fillRect(w*0.618-1, cy-2, 2, 4);
 }
 
+// Gentle idle breath so the visualizer looks alive before recording (SENSE: no dead black box)
+let p15IdleRaf = null, p15IdleT = 0;
+function startP15Idle() {
+  if (isRec) return;              // real capture owns the canvas
+  if (p15IdleRaf) return;         // already breathing
+  initP15Wave();
+  const idle = () => {
+    if (isRec) { p15IdleRaf = null; return; }
+    const amp = 0.14 + Math.sin(p15IdleT * 0.03) * 0.05; // calm resting breath
+    drawP15LungWave(amp, p15IdleT++, null);
+    p15IdleRaf = requestAnimationFrame(idle);
+  };
+  idle();
+}
+function stopP15Idle() {
+  if (p15IdleRaf) { cancelAnimationFrame(p15IdleRaf); p15IdleRaf = null; }
+}
+
 function setupP15Analyser(stream) {
   try {
     const ac = new (window.AudioContext || window.webkitAudioContext)();
@@ -248,6 +266,7 @@ function recordVoiceLog() {
   const preview = document.getElementById('voice-preview');
   const anal = document.getElementById('voice-analysis');
   preview.innerHTML = '🎙 Voice Glow active. Speak your skin truth.';
+  stopP15Idle();
   initP15Wave();
 
   resetVoiceFeatures();
@@ -578,6 +597,7 @@ function addLog(title, desc, surprise = 0.3) {
 function showVoice() {
   hideAll();
   document.getElementById('voice').classList.remove('hidden');
+  startP15Idle();
 }
 
 function showLive() {
@@ -1238,6 +1258,7 @@ function initP15() {
   // One-line Legion signal
   enhanceShopPayments();
   enforceAgeGate();  // p9 cross age gate + p15 privacy shield
+  startP15Idle();    // gentle resting breath so visualizer isn't a dead black box
 }
 
 window.onload = initP15;
