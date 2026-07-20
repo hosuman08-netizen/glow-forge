@@ -1527,6 +1527,15 @@ function renderScanResult(rec) {
     Object.keys(LABELS).map(k => bar(LABELS[k], rec.m[k])).join('');
   document.getElementById('scan-verdict').innerHTML = rec.verdict;
   document.getElementById('scan-focus').textContent = rec.focus;
+  // CTA: turn this scan straight into a personalized routine (scan → plan)
+  const focusEl = document.getElementById('scan-focus');
+  if (focusEl && !document.getElementById('scan-to-plan')) {
+    const cta = document.createElement('button');
+    cta.id = 'scan-to-plan'; cta.className = 'primary'; cta.style.marginTop = '10px';
+    cta.textContent = '🎯 Build my routine from this scan';
+    cta.onclick = buildPlanFromScan;
+    focusEl.after(cta);
+  }
   const sb = document.getElementById('scan-share-btn');
   if (sb) sb.classList.remove('hidden');
 }
@@ -1878,6 +1887,12 @@ function analyzeIngredients() {
       <div class="dim-note" style="margin-top:8px">Hazard scores are EWG-style and don't equal danger — dose, formulation and your own skin matter more. Informational, not medical.</div>`;
   }
 
+  // personalized band — "is this right for MY concerns?" (uses skin profile)
+  if (summary) {
+    const band = _profileMatchBand(parsed);
+    if (band) summary.innerHTML += band;
+  }
+
   // conflicts within this single product
   renderConflicts(conflictsEl, _collectCategories(parsed), _lastAnalysis.name);
 
@@ -1950,3 +1965,365 @@ function removeShelf(i) {
 // small shared helpers
 function _esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function _titleCase(s) { return String(s || '').replace(/\b\w/g, c => c.toUpperCase()); }
+
+// ============================================================
+// 5. MY PLAN — Skin Profile → Personalized Routine Generator (2026-07-21)
+// The connective personalization layer category leaders (Skinsort / INKEY /
+// TroveSkin) have and this app lacked: a persistent skin profile that
+// deterministically BUILDS a tailored AM/PM routine (concern→active mapping,
+// conflict-aware sequencing, frequency ramps, sensitivity + pregnancy gating),
+// derivable straight from a skin scan, and that personalizes the ingredient
+// analyzer ("good for YOUR concerns" / "you flagged sensitivity"). No fabricated
+// numbers — pure rule-based domain logic. Client-only, reversible. Not medical.
+// ============================================================
+
+const PLAN_CONCERNS = [
+  { id: 'dullness',    label: 'Dullness',       emoji: '🌫' },
+  { id: 'pigment',     label: 'Dark spots',     emoji: '🟤' },
+  { id: 'acne',        label: 'Breakouts',      emoji: '🔴' },
+  { id: 'aging',       label: 'Fine lines',     emoji: '⏳' },
+  { id: 'redness',     label: 'Redness',        emoji: '🌹' },
+  { id: 'dehydration', label: 'Dryness',        emoji: '💧' },
+  { id: 'texture',     label: 'Rough texture',  emoji: '🪨' },
+  { id: 'pores',       label: 'Pores / oil',    emoji: '🕳' },
+];
+
+// Treatment actives. `cat` matches ING_DB category tags so the analyzer can
+// detect them; `look` = ingredient names to look for on a label.
+const PLAN_ACTIVES = {
+  vitc:       { name: 'Vitamin C serum',    phase: 'am', why: 'antioxidant defense + brightening', look: ['Ascorbic Acid', 'Ascorbyl Glucoside'], cat: 'vitc' },
+  niacinamide:{ name: 'Niacinamide serum',  phase: 'am', why: 'brightens, calms, refines pores',   look: ['Niacinamide'], cat: 'niacinamide' },
+  hyaluronic: { name: 'Hyaluronic acid',    phase: 'am', why: 'draws moisture into the skin',       look: ['Hyaluronic Acid', 'Sodium Hyaluronate'], cat: 'hydra' },
+  bpo:        { name: 'Benzoyl peroxide (spot)', phase: 'am', why: 'targets active blemishes',        look: ['Benzoyl Peroxide'], cat: 'bpo' },
+  retinoid:   { name: 'Retinoid (retinol)', phase: 'pm', why: 'smooths texture + softens fine lines', look: ['Retinol', 'Retinal', 'Adapalene'], cat: 'retinoid', ramp: true },
+  bakuchiol:  { name: 'Bakuchiol serum',    phase: 'pm', why: 'gentle plant retinol-alternative',    look: ['Bakuchiol'], cat: 'bakuchiol' },
+  aha:        { name: 'AHA exfoliant',      phase: 'pm', why: 'exfoliates dullness + rough texture', look: ['Glycolic Acid', 'Lactic Acid', 'Mandelic Acid'], cat: 'aha', ramp: true },
+  bha:        { name: 'BHA (salicylic acid)', phase: 'pm', why: 'clears pores + controls oil',        look: ['Salicylic Acid'], cat: 'bha', ramp: true },
+  azelaic:    { name: 'Azelaic acid',       phase: 'pm', why: 'fades marks + calms redness (gentle)', look: ['Azelaic Acid'], cat: 'azelaic' },
+  arbutin:    { name: 'Alpha arbutin / tranexamic', phase: 'pm', why: 'targets stubborn pigment',      look: ['Arbutin', 'Tranexamic Acid'], cat: 'arbutin' },
+  centella:   { name: 'Centella (cica) serum', phase: 'pm', why: 'soothes + rebuilds the barrier',    look: ['Centella Asiatica', 'Panthenol'], cat: 'centella' },
+  peptide:    { name: 'Peptide serum',      phase: 'pm', why: 'supports firmness + bounce',           look: ['Peptide', 'Copper Tripeptide-1'], cat: 'peptide' },
+};
+
+// Concern → prioritized actives (first = highest priority for that concern).
+const CONCERN_MAP = {
+  dullness:    ['vitc', 'aha', 'niacinamide'],
+  pigment:     ['vitc', 'niacinamide', 'arbutin', 'azelaic'],
+  acne:        ['bha', 'niacinamide', 'azelaic', 'bpo'],
+  aging:       ['retinoid', 'peptide', 'vitc'],
+  redness:     ['centella', 'azelaic', 'niacinamide'],
+  dehydration: ['hyaluronic', 'centella'],
+  texture:     ['retinoid', 'aha'],
+  pores:       ['bha', 'niacinamide'],
+};
+
+// Weakest scan metric → concern (for scan-driven prefill).
+const METRIC_TO_CONCERN = {
+  radiance: 'dullness', tone: 'pigment', texture: 'texture',
+  calm: 'redness', clarity: 'acne', moisture: 'dehydration',
+};
+
+function _loadProfile() {
+  try { const p = JSON.parse(localStorage.getItem('p15_profile') || 'null'); if (p) return p; } catch (e) {}
+  return { skinType: '', sensitive: false, pregnancy: false, experience: 'beginner', concerns: [], built: false };
+}
+function _saveProfile(p) { try { localStorage.setItem('p15_profile', JSON.stringify(p)); } catch (e) {} }
+let profile = _loadProfile();
+let _lastPlan = null;
+
+function showPlan() {
+  hideAll();
+  const el = document.getElementById('plan');
+  if (el) el.classList.remove('hidden');
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('nav-here'));
+  renderPlanQuiz();
+  if (profile.built) generatePlan(true);
+}
+
+function renderPlanQuiz() {
+  // Skin type chips
+  const types = [['dry', 'Dry'], ['oily', 'Oily'], ['combination', 'Combination'], ['normal', 'Normal']];
+  const stWrap = document.getElementById('plan-skintype');
+  if (stWrap) stWrap.innerHTML = types.map(([id, l]) =>
+    `<button type="button" class="chip-sel ${profile.skinType === id ? 'on' : ''}" onclick="setSkinType('${id}')">${l}</button>`).join('');
+
+  // Concern chips (multi, order = priority)
+  const cWrap = document.getElementById('plan-concerns');
+  if (cWrap) cWrap.innerHTML = PLAN_CONCERNS.map(c => {
+    const idx = profile.concerns.indexOf(c.id);
+    const on = idx >= 0;
+    return `<button type="button" class="chip-sel ${on ? 'on' : ''}" onclick="toggleConcern('${c.id}')">${c.emoji} ${c.label}${on ? `<span class="chip-rank">${idx + 1}</span>` : ''}</button>`;
+  }).join('');
+
+  // Experience chips
+  const exWrap = document.getElementById('plan-exp');
+  if (exWrap) exWrap.innerHTML = [['beginner', 'New to actives'], ['intermediate', 'Some experience'], ['advanced', 'Experienced']]
+    .map(([id, l]) => `<button type="button" class="chip-sel ${profile.experience === id ? 'on' : ''}" onclick="setExp('${id}')">${l}</button>`).join('');
+
+  const sens = document.getElementById('plan-sensitive');
+  if (sens) sens.checked = !!profile.sensitive;
+  const preg = document.getElementById('plan-pregnancy');
+  if (preg) preg.checked = !!profile.pregnancy;
+}
+
+function setSkinType(id) { profile.skinType = id; _saveProfile(profile); renderPlanQuiz(); }
+function setExp(id) { profile.experience = id; _saveProfile(profile); renderPlanQuiz(); }
+function toggleConcern(id) {
+  const at = profile.concerns.indexOf(id);
+  if (at >= 0) profile.concerns.splice(at, 1);
+  else { if (profile.concerns.length >= 4) profile.concerns.shift(); profile.concerns.push(id); }
+  _saveProfile(profile); renderPlanQuiz();
+}
+function togglePlanFlag(which) {
+  const el = document.getElementById(which === 'sensitive' ? 'plan-sensitive' : 'plan-pregnancy');
+  profile[which] = !!(el && el.checked);
+  _saveProfile(profile);
+}
+
+// ---- Deterministic routine builder ----
+function _buildPlan(prof) {
+  const exp = prof.experience || 'beginner';
+  const sensitive = !!prof.sensitive;
+  const preg = !!prof.pregnancy;
+
+  // 1. Score candidate actives by concern priority.
+  const score = {};
+  (prof.concerns || []).forEach((cid, ci) => {
+    const cWeight = 4 - Math.min(3, ci);                  // 1st concern heaviest
+    (CONCERN_MAP[cid] || []).forEach((aid, ai) => {
+      score[aid] = (score[aid] || 0) + cWeight * (3 - Math.min(2, ai));
+    });
+  });
+
+  // 2. Safety substitutions / gating. (Anything dropped here is fully removed
+  //    from the plan so the shown routine always matches what we say we did.)
+  const notes = [];
+  if (preg) {
+    const hadRetinoid = !!score.retinoid, hadBha = !!score.bha, hadBpo = !!score.bpo;
+    if (hadRetinoid) { delete score.retinoid; score.bakuchiol = (score.bakuchiol || 0) + 3; }
+    delete score.bpo;
+    delete score.bha;
+    if (hadRetinoid || hadBha || hadBpo) {
+      const swapped = [hadRetinoid && 'retinoids', hadBpo && 'benzoyl peroxide', hadBha && 'salicylic acid (BHA)'].filter(Boolean).join(', ');
+      notes.push(`Pregnancy-safe mode: ${swapped} left out — commonly avoided in pregnancy${hadRetinoid ? ' (a gentle bakuchiol takes the retinoid\'s place)' : ''}. Confirm anything with your doctor. Not medical advice.`);
+    }
+  }
+  if (sensitive) {
+    if (score.retinoid) { delete score.retinoid; score.bakuchiol = (score.bakuchiol || 0) + 2; }
+    delete score.aha;
+    delete score.bpo;
+    score.centella = (score.centella || 0) + 2;           // barrier support
+    notes.push('Sensitive mode: harsher exfoliants are dialed back and soothing barrier support is prioritized. Introduce any one active at a time.');
+  }
+
+  // 3. Rank + cap treatment actives. Guarantee every chosen concern is
+  //    represented by at least its top surviving active before score-filling,
+  //    so e.g. flagging "breakouts" never returns zero acne actives.
+  const isStaple = (a) => a === 'hyaluronic' || a === 'niacinamide';
+  const cap = sensitive ? 2 : exp === 'beginner' ? 3 : 4;
+  const ranked = Object.keys(score).filter(a => score[a] > 0).sort((a, b) => score[b] - score[a] || a.localeCompare(b));
+  const guaranteed = [];
+  (prof.concerns || []).forEach(cid => {
+    const top = (CONCERN_MAP[cid] || []).find(aid => score[aid] > 0 && !isStaple(aid));
+    if (top && !guaranteed.includes(top)) guaranteed.push(top);
+  });
+  const fill = ranked.filter(a => !isStaple(a) && !guaranteed.includes(a));
+  const treatments = [...guaranteed, ...fill].slice(0, cap);
+  const staples = ranked.filter(isStaple);            // gentle — don't consume the cap
+  const chosen = [...new Set([...treatments, ...staples])];
+
+  // 4. Frequency + conflict-aware alternate-night scheduling.
+  const rampFreq = () => sensitive ? '1 night / week' :
+    exp === 'beginner' ? '2 nights / week, build up slowly' :
+    exp === 'intermediate' ? 'every other night' : 'nightly, as tolerated';
+  const freq = {};
+  chosen.forEach(a => { freq[a] = PLAN_ACTIVES[a].ramp ? rampFreq() : 'daily'; });
+
+  const pmActives = chosen.filter(a => PLAN_ACTIVES[a].phase === 'pm');
+  const hasRetinoid = pmActives.includes('retinoid');
+  const acids = pmActives.filter(a => a === 'aha' || a === 'bha');
+  if (hasRetinoid && acids.length) {
+    freq.retinoid = 'alternate nights (never same night as acids)';
+    acids.forEach(a => { freq[a] = 'alternate nights (opposite the retinoid)'; });
+    notes.push('Your retinoid and acid are scheduled on alternate nights — layering them together over-exfoliates. On off-nights, just hydrate.');
+  } else if (acids.length > 1) {
+    acids.forEach(a => { freq[a] = 'alternate nights'; });
+    notes.push('Two exfoliating acids are split across alternate nights to protect your barrier.');
+  }
+
+  // 5. Assemble ordered AM / PM steps (thin → rich, actives before moisturizer).
+  const oily = prof.skinType === 'oily' || prof.skinType === 'combination';
+  const step = (name, why, f) => ({ name, why, freq: f || 'daily' });
+  const am = [step('Gentle cleanser', 'clean slate without stripping')];
+  ['bpo', 'vitc', 'niacinamide', 'hyaluronic'].forEach(a => {
+    if (chosen.includes(a) && PLAN_ACTIVES[a].phase === 'am') am.push(step(PLAN_ACTIVES[a].name, PLAN_ACTIVES[a].why, freq[a]));
+  });
+  am.push(step(prof.skinType === 'dry' ? 'Rich moisturizer' : 'Lightweight moisturizer', 'seal in hydration'));
+  am.push(step('Sunscreen SPF 30+', 'non-negotiable — UV undoes every active + ages skin fastest'));
+
+  const pm = [];
+  pm.push(step(oily ? 'Oil cleanse, then water cleanse' : 'Gentle cleanser', oily ? 'double-cleanse dissolves oil, SPF & grime' : 'remove the day gently'));
+  // main treatments first (retinoid/acid), then supportive
+  const pmOrder = ['retinoid', 'bakuchiol', 'aha', 'bha', 'azelaic', 'arbutin', 'peptide', 'centella'];
+  pmOrder.forEach(a => { if (chosen.includes(a)) pm.push(step(PLAN_ACTIVES[a].name, PLAN_ACTIVES[a].why, freq[a])); });
+  if (chosen.includes('hyaluronic')) pm.push(step('Hyaluronic acid', 'on damp skin, before cream', 'daily'));
+  pm.push(step(prof.skinType === 'dry' ? 'Rich night cream' : 'Moisturizer', 'lock everything in overnight'));
+
+  // Ingredient shopping guide (what to look for on labels)
+  const lookFor = chosen.map(a => ({ label: PLAN_ACTIVES[a].name, look: PLAN_ACTIVES[a].look }));
+
+  return { am, pm, notes, chosen, lookFor };
+}
+
+function generatePlan(silent) {
+  if (!profile.concerns.length) {
+    const r = document.getElementById('plan-result');
+    if (r) { r.classList.remove('hidden'); r.innerHTML = '<div class="dim-note">Pick at least one skin concern above, then build your plan.</div>'; }
+    return;
+  }
+  profile.built = true; _saveProfile(profile);
+  const plan = _buildPlan(profile);
+  _lastPlan = plan;
+  renderPlanResult(plan);
+  if (!silent) {
+    addToCodex(`Built a personalized routine for ${profile.concerns.map(c => (PLAN_CONCERNS.find(x => x.id === c) || {}).label || c).join(', ')}.`);
+    try { if (window.legionTrack) legionTrack('activate'); } catch (e) {}
+  }
+}
+
+function renderPlanResult(plan) {
+  const r = document.getElementById('plan-result');
+  if (!r) return;
+  r.classList.remove('hidden');
+  const concernLabels = profile.concerns.map(c => { const o = PLAN_CONCERNS.find(x => x.id === c); return o ? `${o.emoji} ${o.label}` : c; });
+  const stepRow = (s) => `<div class="plan-step">
+      <div class="ps-main"><span class="ps-name">${_esc(s.name)}</span>${s.freq && s.freq !== 'daily' ? `<span class="ps-freq">${_esc(s.freq)}</span>` : ''}</div>
+      <div class="ps-why">${_esc(s.why)}</div></div>`;
+
+  r.innerHTML = `
+    <div class="plan-head">Your plan targets <strong>${concernLabels.join(' · ')}</strong>
+      ${profile.sensitive ? '<span class="plan-tag">sensitive-safe</span>' : ''}${profile.pregnancy ? '<span class="plan-tag">pregnancy-safe</span>' : ''}
+      <span class="plan-tag">${_esc(profile.experience)}</span></div>
+
+    <div class="plan-cols">
+      <div class="plan-col">
+        <div class="plan-col-head">☀️ Morning</div>
+        ${plan.am.map(stepRow).join('')}
+      </div>
+      <div class="plan-col">
+        <div class="plan-col-head">🌙 Night</div>
+        ${plan.pm.map(stepRow).join('')}
+      </div>
+    </div>
+
+    ${plan.notes.length ? `<div class="plan-notes">${plan.notes.map(n => `<div class="plan-note">💡 ${_esc(n)}</div>`).join('')}</div>` : ''}
+
+    <details class="plan-look">
+      <summary>🛒 What to look for on labels (${plan.lookFor.length})</summary>
+      <div class="plan-look-body">${plan.lookFor.map(l => `<div class="pl-row"><span class="pl-cat">${_esc(l.label)}</span><span class="pl-ing">${l.look.map(_esc).join(' · ')}</span></div>`).join('')}</div>
+    </details>
+
+    <div class="controls" style="margin-top:12px">
+      <button class="primary" onclick="applyPlanToRoutine()">✅ Use as my Routine Tracker</button>
+      <button onclick="sharePlan()">💌 Share my plan</button>
+    </div>
+    <div class="dim-note" style="margin-top:8px">Rule-based suggestions from your profile — fictional beauty entertainment, not medical advice. Patch-test new actives; see a dermatologist for real concerns.</div>`;
+}
+
+function applyPlanToRoutine() {
+  if (!_lastPlan) return;
+  // reversible: stash the previous routine so it can be restored
+  try { localStorage.setItem('p15_routine_prev', JSON.stringify(routine)); } catch (e) {}
+  const trim = (s) => { const f = s.freq && s.freq !== 'daily' ? ` (${s.freq.split(',')[0].split('(')[0].trim()})` : ''; return (s.name + f).slice(0, 40); };
+  routine.am = _lastPlan.am.map(trim);
+  routine.pm = _lastPlan.pm.map(trim);
+  // clear today's checked indices (steps changed) to keep completion honest
+  const today = _routineToday(); today.am = []; today.pm = [];
+  if (today._credited) { today._credited = {}; }
+  _saveRoutine();
+  addToCodex('Applied personalized plan to routine tracker (previous routine saved — restorable).');
+  try { if (window.legionTrack) legionTrack('activate'); } catch (e) {}
+  const r = document.getElementById('plan-result');
+  if (r) {
+    const banner = document.createElement('div');
+    banner.className = 'routine-done-banner';
+    banner.innerHTML = '✅ Saved to your Routine tracker. <a href="#" onclick="showRoutine();return false;" style="color:var(--gold)">Open Routine →</a> · <a href="#" onclick="restoreRoutine();return false;" style="color:var(--dim)">undo</a>';
+    r.insertBefore(banner, r.firstChild);
+  }
+}
+
+function restoreRoutine() {
+  try {
+    const prev = JSON.parse(localStorage.getItem('p15_routine_prev') || 'null');
+    if (prev && prev.am && prev.pm) { routine = prev; _saveRoutine(); addToCodex('Restored previous routine.'); }
+  } catch (e) {}
+  showPlan();
+}
+
+function sharePlan() {
+  if (!_lastPlan) return;
+  const cl = profile.concerns.map(c => (PLAN_CONCERNS.find(x => x.id === c) || {}).label || c).join(', ');
+  const card = `✨ My personalized skincare plan (${cl})\n` +
+    `☀️ AM: ${_lastPlan.am.map(s => s.name).join(' → ')}\n` +
+    `🌙 PM: ${_lastPlan.pm.map(s => s.name).join(' → ')}\n` +
+    `Built on-device by GoddessForge — fictional beauty sim, not medical. Build yours 🎯`;
+  try { if (window.legionTrack) legionTrack('share'); } catch (e) {}
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(card).then(() => alert('✅ Plan copied — share it with your sisters.'), () => { try { prompt('Copy your plan:', card); } catch (e) {} });
+  } else { try { prompt('Copy your plan:', card); } catch (e) {} }
+}
+
+// Scan → plan: derive concerns from the two weakest metrics, then open the plan.
+function buildPlanFromScan() {
+  const s = _lastScan || scans[0];
+  if (!s || !s.m) { showPlan(); return; }
+  const ranked = Object.keys(s.m).sort((a, b) => s.m[a] - s.m[b]);   // weakest first
+  const derived = [];
+  ranked.forEach(k => { const c = METRIC_TO_CONCERN[k]; if (c && !derived.includes(c) && derived.length < 3) derived.push(c); });
+  profile.concerns = derived.length ? derived : profile.concerns;
+  _saveProfile(profile);
+  showPlan();
+  generatePlan();
+  const r = document.getElementById('plan-result');
+  if (r) { const b = document.createElement('div'); b.className = 'plan-note'; b.style.marginBottom = '8px';
+    b.textContent = `🎯 Concerns pre-filled from your scan's weakest areas: ${derived.map(c => (PLAN_CONCERNS.find(x => x.id === c) || {}).label || c).join(', ')}. Adjust above anytime.`;
+    r.insertBefore(b, r.firstChild); }
+}
+
+// Personalized band for the ingredient analyzer (uses the profile).
+function _profileMatchBand(parsed) {
+  const prof = profile;
+  if (!prof || !prof.built || !prof.concerns.length) return '';
+  const catNames = {};   // cat -> [display names present]
+  parsed.forEach(p => (p.c || []).forEach(cat => { (catNames[cat] = catNames[cat] || []).push(_titleCase(p.name)); }));
+
+  const goodBits = [];
+  prof.concerns.forEach(cid => {
+    const acts = CONCERN_MAP[cid] || [];
+    const hits = [];
+    acts.forEach(aid => { const cat = PLAN_ACTIVES[aid].cat; if (catNames[cat]) hits.push(...catNames[cat]); });
+    if (hits.length) { const o = PLAN_CONCERNS.find(x => x.id === cid); goodBits.push(`<strong>${o ? o.label : cid}</strong> → ${[...new Set(hits)].join(', ')}`); }
+  });
+
+  // sensitivity / pregnancy watch-outs actually present in this product
+  const warnNames = [];
+  const IRRITANTS = ['fragrance', 'parfum', 'limonene', 'linalool', 'alcohol denat', 'denatured alcohol'];
+  parsed.forEach(p => {
+    if (prof.sensitive) {
+      if (IRRITANTS.some(k => p.name.includes(k))) warnNames.push(_titleCase(p.name) + ' (irritant)');
+      else if (p.h != null && p.h >= 5 && (p.c || []).some(c => ['aha', 'bha', 'retinoid', 'bpo'].includes(c))) warnNames.push(_titleCase(p.name) + ' (strong active)');
+    }
+  });
+  const pregNames = [];
+  if (prof.pregnancy) parsed.forEach(p => { if ((p.c || []).some(c => ['retinoid', 'bpo'].includes(c))) pregNames.push(_titleCase(p.name)); });
+
+  if (!goodBits.length && !warnNames.length && !pregNames.length) {
+    return `<div class="match-band"><div class="mb-head">For your profile</div><div class="dim-note" style="margin:0">Nothing here specifically targets your concerns — a supportive/basics product.</div></div>`;
+  }
+  let html = '<div class="match-band"><div class="mb-head">For your profile</div>';
+  if (goodBits.length) html += `<div class="mb-good">✓ Good for your ${goodBits.join(' &nbsp;·&nbsp; ')}</div>`;
+  if (warnNames.length) html += `<div class="mb-warn">⚠ You flagged sensitivity — contains ${[...new Set(warnNames)].join(', ')}. Patch-test first.</div>`;
+  if (pregNames.length) html += `<div class="mb-warn">⚠ Pregnancy-safe mode — contains ${[...new Set(pregNames)].join(', ')}, commonly avoided in pregnancy. Confirm with your doctor. Not medical advice.</div>`;
+  html += '</div>';
+  return html;
+}

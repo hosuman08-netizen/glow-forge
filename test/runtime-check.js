@@ -37,6 +37,19 @@ catch(e){ fail++; console.log('LOAD ERROR',ENTRY,'❌',e.message,'\n',(e.stack||
 const T = `(function(){ var R=[];
   function tryFn(l,f){ try{ f(); R.push('✅ '+l); }catch(e){ R.push('❌ '+l+' — '+e.message); } }
   tryFn('window.onload(부팅)', function(){ if(typeof window.onload==='function') window.onload(); });
+  // ── My Plan personalization engine (2026-07-21) ──
+  tryFn('showPlan', function(){ if(typeof showPlan==='function') showPlan(); });
+  tryFn('setSkinType', function(){ if(typeof setSkinType==='function') setSkinType('combination'); });
+  tryFn('setExp', function(){ if(typeof setExp==='function') setExp('beginner'); });
+  tryFn('toggleConcern x3', function(){ if(typeof toggleConcern==='function'){ toggleConcern('pigment'); toggleConcern('acne'); toggleConcern('aging'); } });
+  tryFn('generatePlan', function(){ if(typeof generatePlan==='function') generatePlan(); });
+  tryFn('generatePlan sensitive+preg', function(){ if(typeof profile!=='undefined'){ profile.sensitive=true; profile.pregnancy=true; } if(typeof generatePlan==='function') generatePlan(); });
+  tryFn('applyPlanToRoutine', function(){ if(typeof applyPlanToRoutine==='function') applyPlanToRoutine(); });
+  tryFn('restoreRoutine', function(){ if(typeof restoreRoutine==='function') restoreRoutine(); });
+  tryFn('sharePlan', function(){ if(typeof sharePlan==='function') sharePlan(); });
+  tryFn('buildPlanFromScan(no scan)', function(){ if(typeof buildPlanFromScan==='function') buildPlanFromScan(); });
+  tryFn('_buildPlan all concerns', function(){ if(typeof _buildPlan==='function') _buildPlan({skinType:'oily',sensitive:false,pregnancy:false,experience:'advanced',concerns:['dullness','pigment','acne','aging','redness','dehydration','texture','pores']}); });
+  tryFn('analyzeIngredients+profile band', function(){ if(typeof document!=='undefined'){ var i=document.getElementById('ing-input'); i.value='Water, Niacinamide, Retinol, Fragrance, Salicylic Acid, Ascorbic Acid'; } if(typeof analyzeIngredients==='function') analyzeIngredients(); });
   globalThis.__R=R; })();`;
 var testThrew=false;
 try{ vm.runInContext(T, sb, {filename:'test'}); }catch(e){ console.log('TEST BLOCK THREW', e.message); testThrew=true; }

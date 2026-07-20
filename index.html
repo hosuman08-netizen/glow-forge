@@ -55,6 +55,7 @@
 
       <div class="nav">
         <button onclick="showSkinScan()" class="nav-primary">📷 Skin Scan</button>
+        <button onclick="showPlan()" class="nav-primary">🎯 My Plan</button>
         <button onclick="showRoutine()">🧴 Routine</button>
         <button onclick="showIngredients()">🧪 Ingredients</button>
         <button onclick="showVoice()">🎙 Voice Glow</button>
@@ -98,6 +99,32 @@
         <h3>Progress Diary — watch your skin change</h3>
         <div id="scan-diary-body"></div>
       </div>
+    </div>
+
+    <!-- ============ MY PLAN — Skin Profile → Personalized Routine ============ -->
+    <div id="plan" class="section hidden">
+      <h2>🎯 My Plan — Personalized Routine</h2>
+      <p class="psych-hint">Tell us your skin in 3 taps and we build a tailored AM/PM routine — the right actives, in the right order, at a safe frequency. Or scan a selfie and we pre-fill it for you. Fictional beauty entertainment, not medical.</p>
+
+      <div class="plan-quiz">
+        <label class="pq-label">Your skin type</label>
+        <div id="plan-skintype" class="chip-row"></div>
+
+        <label class="pq-label">Top concerns <span class="pq-hint">(tap up to 4 — order = priority)</span></label>
+        <div id="plan-concerns" class="chip-row"></div>
+
+        <label class="pq-label">Experience with actives</label>
+        <div id="plan-exp" class="chip-row"></div>
+
+        <div class="pq-flags">
+          <label class="pq-check"><input type="checkbox" id="plan-sensitive" onchange="togglePlanFlag('sensitive')"> Sensitive skin</label>
+          <label class="pq-check"><input type="checkbox" id="plan-pregnancy" onchange="togglePlanFlag('pregnancy')"> Pregnancy-safe</label>
+        </div>
+
+        <button class="primary" style="width:100%;margin-top:12px" onclick="generatePlan()">✨ Build my routine</button>
+      </div>
+
+      <div id="plan-result" class="hidden"></div>
     </div>
 
     <!-- ============ AM/PM ROUTINE TRACKER ============ -->
