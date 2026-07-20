@@ -1,4 +1,7 @@
 
+/* LEGION_WAVE_97_session_counter */
+try{if(!sessionStorage.getItem('lw_p15_women_be_session_counter')){sessionStorage.setItem('lw_p15_women_be_session_counter','1');localStorage.setItem('lw_p15_women_be_session_counter',String((+(localStorage.getItem('lw_p15_women_be_session_counter')||0))+1));}}catch(e){}
+
 /* LEGION_WAVE_7_session_counter */
 try{if(!sessionStorage.getItem('lw_p15_women_be_session_counter')){sessionStorage.setItem('lw_p15_women_be_session_counter','1');localStorage.setItem('lw_p15_women_be_session_counter',String((+(localStorage.getItem('lw_p15_women_be_session_counter')||0))+1));}}catch(e){}
 // p15 GoddessForge — Lilith (psych) + full-cheat weaponized
